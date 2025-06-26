@@ -135,6 +135,16 @@ export default function DebitosPage() {
     }
   }
 
+  const formatarData = (dataString: string) => {
+    // Se a data já está no formato YYYY-MM-DD, usar diretamente
+    if (dataString.includes("-") && dataString.length === 10) {
+      const [ano, mes, dia] = dataString.split("-")
+      return `${dia}/${mes}/${ano}`
+    }
+    // Caso contrário, tentar converter
+    return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -224,7 +234,7 @@ export default function DebitosPage() {
                       <TableRow key={debito.id}>
                         <TableCell>{debito.cooperado_nome}</TableCell>
                         <TableCell>{debito.descricao}</TableCell>
-                        <TableCell>{new Date(debito.data).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>{formatarData(debito.data)}</TableCell>
                         <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
                         <TableCell>
                           <Button variant="destructive" size="sm" onClick={() => handleDelete(debito.id)}>

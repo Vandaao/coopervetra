@@ -9,7 +9,7 @@ export async function GET() {
       SELECT 
         d.id,
         d.descricao,
-        d.data,
+        TO_CHAR(d.data, 'YYYY-MM-DD') as data,
         d.valor,
         c.nome as cooperado_nome
       FROM debitos d
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO debitos (cooperado_id, descricao, data, valor)
-      VALUES (${cooperado_id}, ${descricao}, ${data}, ${valor})
+      VALUES (${cooperado_id}, ${descricao}, ${data}::date, ${valor})
       RETURNING id
     `
 

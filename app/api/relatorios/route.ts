@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Cooperado não encontrado" }, { status: 404 })
     }
 
-    // Buscar fretes no período - usando DATE() para comparar apenas as datas
+    // Buscar fretes no período - usando TO_CHAR para formatar a data
     const fretes = await sql`
       SELECT 
-        f.data,
+        TO_CHAR(f.data, 'YYYY-MM-DD') as data,
         f.carga,
         f.km,
         f.valor,
@@ -38,21 +38,21 @@ export async function GET(request: NextRequest) {
       FROM fretes f
       JOIN empresas e ON f.empresa_id = e.id
       WHERE f.cooperado_id = ${cooperado_id}
-        AND DATE(f.data) >= DATE(${data_inicio})
-        AND DATE(f.data) <= DATE(${data_fim})
+        AND f.data >= ${data_inicio}::date
+        AND f.data <= ${data_fim}::date
       ORDER BY f.data
     `
 
-    // Buscar débitos no período - usando DATE() para comparar apenas as datas
+    // Buscar débitos no período - usando TO_CHAR para formatar a data
     const debitos = await sql`
       SELECT 
-        data,
+        TO_CHAR(data, 'YYYY-MM-DD') as data,
         descricao,
         valor
       FROM debitos
       WHERE cooperado_id = ${cooperado_id}
-        AND DATE(data) >= DATE(${data_inicio})
-        AND DATE(data) <= DATE(${data_fim})
+        AND data >= ${data_inicio}::date
+        AND data <= ${data_fim}::date
       ORDER BY data
     `
 

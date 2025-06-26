@@ -108,6 +108,16 @@ export default function RelatoriosPage() {
     window.print()
   }
 
+  const formatarData = (dataString: string) => {
+    // Se a data já está no formato YYYY-MM-DD, usar diretamente
+    if (dataString.includes("-") && dataString.length === 10) {
+      const [ano, mes, dia] = dataString.split("-")
+      return `${dia}/${mes}/${ano}`
+    }
+    // Caso contrário, tentar converter
+    return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b print:hidden">
@@ -219,7 +229,7 @@ export default function RelatoriosPage() {
                   <TableBody>
                     {relatorio.fretes.map((frete, index) => (
                       <TableRow key={index}>
-                        <TableCell>{new Date(frete.data).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>{formatarData(frete.data)}</TableCell>
                         <TableCell>{frete.empresa_nome}</TableCell>
                         <TableCell>{frete.carga}</TableCell>
                         <TableCell>{frete.km}</TableCell>
@@ -246,7 +256,7 @@ export default function RelatoriosPage() {
                       <TableBody>
                         {relatorio.debitos.map((debito, index) => (
                           <TableRow key={index}>
-                            <TableCell>{new Date(debito.data).toLocaleDateString("pt-BR")}</TableCell>
+                            <TableCell>{formatarData(debito.data)}</TableCell>
                             <TableCell>{debito.descricao}</TableCell>
                             <TableCell>R$ {debito.valor.toFixed(2)}</TableCell>
                           </TableRow>
@@ -303,7 +313,7 @@ export default function RelatoriosPage() {
                   <tbody>
                     {relatorio.fretes.map((frete, index) => (
                       <tr key={index} className="border-b border-gray-300">
-                        <td className="py-2 px-1">{new Date(frete.data).toLocaleDateString("pt-BR")}</td>
+                        <td className="py-2 px-1">{formatarData(frete.data)}</td>
                         <td className="py-2 px-1">{frete.carga}</td>
                         <td className="py-2 px-1">{frete.km}</td>
                         <td className="py-2 px-1">R$ {(frete.valor + frete.chapada).toFixed(2)}</td>
@@ -339,7 +349,7 @@ export default function RelatoriosPage() {
                     <tbody>
                       {relatorio.debitos.map((debito, index) => (
                         <tr key={index} className="border-b border-gray-300">
-                          <td className="py-2 px-1">{new Date(debito.data).toLocaleDateString("pt-BR")}</td>
+                          <td className="py-2 px-1">{formatarData(debito.data)}</td>
                           <td className="py-2 px-1">{debito.descricao}</td>
                           <td className="py-2 px-1">R$ {debito.valor.toFixed(2)}</td>
                         </tr>

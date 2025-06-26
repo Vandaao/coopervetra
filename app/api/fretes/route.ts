@@ -12,7 +12,7 @@ export async function GET() {
         f.km,
         f.valor,
         f.chapada,
-        f.data,
+        TO_CHAR(f.data, 'YYYY-MM-DD') as data,
         c.nome as cooperado_nome,
         e.nome as empresa_nome
       FROM fretes f
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const result = await sql`
       INSERT INTO fretes (cooperado_id, empresa_id, carga, km, valor, chapada, data)
-      VALUES (${cooperado_id}, ${empresa_id}, ${carga}, ${km}, ${valor}, ${chapada}, ${data})
+      VALUES (${cooperado_id}, ${empresa_id}, ${carga}, ${km}, ${valor}, ${chapada}, ${data}::date)
       RETURNING id
     `
 

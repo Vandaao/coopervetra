@@ -166,6 +166,16 @@ export default function FretesPage() {
     }
   }
 
+  const formatarData = (dataString: string) => {
+    // Se a data já está no formato YYYY-MM-DD, usar diretamente
+    if (dataString.includes("-") && dataString.length === 10) {
+      const [ano, mes, dia] = dataString.split("-")
+      return `${dia}/${mes}/${ano}`
+    }
+    // Caso contrário, tentar converter
+    return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+  }
+
   const fretesFiltrados =
     filtroCooperado === "todos"
       ? fretes
@@ -330,7 +340,7 @@ export default function FretesPage() {
                         <TableCell>{frete.km}</TableCell>
                         <TableCell>R$ {Number(frete.valor).toFixed(2)}</TableCell>
                         <TableCell>R$ {Number(frete.chapada).toFixed(2)}</TableCell>
-                        <TableCell>{new Date(frete.data).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>{formatarData(frete.data)}</TableCell>
                         <TableCell>
                           <Button variant="destructive" size="sm" onClick={() => handleDelete(frete.id)}>
                             <Trash2 className="h-4 w-4" />
