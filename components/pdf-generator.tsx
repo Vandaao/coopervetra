@@ -53,14 +53,14 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       const pdfContent = document.createElement("div")
       pdfContent.style.width = "210mm"
       pdfContent.style.minHeight = "297mm"
-      pdfContent.style.padding = "20mm"
+      pdfContent.style.padding = "15mm"
       pdfContent.style.backgroundColor = "white"
       pdfContent.style.fontFamily = "Arial, sans-serif"
       pdfContent.style.fontSize = "12px"
       pdfContent.style.color = "black"
 
       pdfContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 30px;">
+        <div style="text-align: center; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
             <div style="flex: 1;">
               <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; line-height: 1.2;">
@@ -78,11 +78,11 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
           </div>
         </div>
 
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 15px;">
           <p style="font-size: 14px; font-weight: bold;">NOME: ${relatorio.cooperado_nome}</p>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           <thead>
             <tr style="border-bottom: 2px solid black;">
               <th style="text-align: left; padding: 8px 4px; font-weight: bold;">Data</th>
@@ -106,7 +106,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
             `,
               )
               .join("")}
-            ${Array.from({ length: Math.max(0, 10 - relatorio.fretes.length) })
+            ${Array.from({ length: Math.max(0, 6 - relatorio.fretes.length) })
               .map(
                 () => `
               <tr style="border-bottom: 1px solid #ccc;">
@@ -125,7 +125,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
         ${
           relatorio.debitos.length > 0
             ? `
-        <div style="margin-bottom: 30px;">
+        <div style="margin-bottom: 20px;">
           <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 15px;">DÉBITOS NO PERÍODO</h3>
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -147,7 +147,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               `,
                 )
                 .join("")}
-              ${Array.from({ length: Math.max(0, 5 - relatorio.debitos.length) })
+              ${Array.from({ length: Math.max(0, 3 - relatorio.debitos.length) })
                 .map(
                   () => `
                 <tr style="border-bottom: 1px solid #ccc;">
@@ -167,7 +167,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
 
         <div style="border-top: 1px dashed black; margin: 20px 0;"></div>
 
-        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
           <div>
             <p style="font-weight: bold;">TOTAL DE KM NO PERÍODO: ${relatorio.total_km}</p>
           </div>
@@ -195,11 +195,11 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
 
         <div style="border-top: 1px dashed black; margin: 20px 0;"></div>
 
-        <div style="text-align: right; margin-bottom: 60px;">
+        <div style="text-align: right; margin-bottom: 40px;">
           <p style="font-size: 18px; font-weight: bold;">TOTAL GERAL: R$ ${relatorio.valor_liquido.toFixed(2)}</p>
         </div>
 
-        <div style="margin-top: 80px;">
+        <div style="margin-top: 60px;">
           <div style="display: flex; justify-content: space-between;">
             <div style="text-align: center; width: 45%;">
               <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>

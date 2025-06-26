@@ -261,7 +261,7 @@ export default function RelatoriosPage() {
             {/* Versão para impressão */}
             <div id="relatorio-pdf" className="hidden print:block print:text-black">
               {/* Cabeçalho da Cooperativa */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-5">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <h1 className="text-lg font-bold mb-2">
@@ -284,12 +284,12 @@ export default function RelatoriosPage() {
               </div>
 
               {/* Nome do Cooperado */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <p className="text-lg font-bold">NOME: {relatorio.cooperado_nome}</p>
               </div>
 
               {/* Tabela de Fretes */}
-              <div className="mb-8">
+              <div className="mb-6">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b-2 border-black">
@@ -311,7 +311,7 @@ export default function RelatoriosPage() {
                       </tr>
                     ))}
                     {/* Linhas em branco para completar o espaço */}
-                    {Array.from({ length: Math.max(0, 10 - relatorio.fretes.length) }).map((_, index) => (
+                    {Array.from({ length: Math.max(0, 6 - relatorio.fretes.length) }).map((_, index) => (
                       <tr key={`empty-${index}`} className="border-b border-gray-300">
                         <td className="py-2 px-1">&nbsp;</td>
                         <td className="py-2 px-1">&nbsp;</td>
@@ -326,7 +326,7 @@ export default function RelatoriosPage() {
 
               {/* Tabela de Débitos */}
               {relatorio.debitos.length > 0 && (
-                <div className="mb-8">
+                <div className="mb-6">
                   <h3 className="text-lg font-bold mb-4">DÉBITOS NO PERÍODO</h3>
                   <table className="w-full border-collapse">
                     <thead>
@@ -345,7 +345,7 @@ export default function RelatoriosPage() {
                         </tr>
                       ))}
                       {/* Linhas em branco para completar o espaço se houver poucos débitos */}
-                      {Array.from({ length: Math.max(0, 5 - relatorio.debitos.length) }).map((_, index) => (
+                      {Array.from({ length: Math.max(0, 3 - relatorio.debitos.length) }).map((_, index) => (
                         <tr key={`empty-debito-${index}`} className="border-b border-gray-300">
                           <td className="py-2 px-1">&nbsp;</td>
                           <td className="py-2 px-1">&nbsp;</td>
@@ -361,7 +361,7 @@ export default function RelatoriosPage() {
               <div className="border-t border-dashed border-black mb-4"></div>
 
               {/* Totalizações */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="grid grid-cols-2 gap-8 mb-6">
                 <div>
                   <p className="font-bold">TOTAL DE KM NO PERÍODO: {relatorio.total_km}</p>
                 </div>
@@ -391,12 +391,12 @@ export default function RelatoriosPage() {
               <div className="border-t border-dashed border-black mb-4"></div>
 
               {/* Total Geral */}
-              <div className="text-right mb-12">
+              <div className="text-right mb-10">
                 <p className="text-xl font-bold">TOTAL GERAL: R$ {relatorio.valor_liquido.toFixed(2)}</p>
               </div>
 
               {/* Espaço para assinaturas */}
-              <div className="mt-16 pt-8">
+              <div className="mt-12 pt-6">
                 <div className="grid grid-cols-2 gap-16">
                   <div className="text-center">
                     <div className="border-t border-black mb-2"></div>

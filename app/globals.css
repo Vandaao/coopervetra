@@ -93,7 +93,8 @@
   body {
     -webkit-print-color-adjust: exact;
     color-adjust: exact;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.2;
   }
 
   .print\:break-inside-avoid {
@@ -101,12 +102,13 @@
   }
 
   @page {
-    margin: 1cm;
+    margin: 0.8cm;
     size: A4;
   }
 
   table {
     page-break-inside: avoid;
+    font-size: 10px;
   }
 
   .grid {
@@ -121,5 +123,22 @@
 
   .grid-cols-2 > div:first-child {
     margin-right: 4%;
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin-top: 0;
+    margin-bottom: 0.3rem;
+  }
+
+  .print\:compact {
+    margin: 0.2rem 0;
+    padding: 0.2rem;
   }
 }
