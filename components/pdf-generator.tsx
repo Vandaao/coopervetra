@@ -42,6 +42,16 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
+  const formatarData = (dataString: string) => {
+    // Se a data já está no formato YYYY-MM-DD, usar diretamente
+    if (dataString.includes("-") && dataString.length === 10) {
+      const [ano, mes, dia] = dataString.split("-")
+      return `${dia}/${mes}/${ano}`
+    }
+    // Caso contrário, tentar converter
+    return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+  }
+
   const generatePDF = async () => {
     setLoading(true)
 
@@ -62,7 +72,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       pdfContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-            <div style="flex: 1;">
+            <div style="flex: 1; padding-right: 20px;">
               <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; line-height: 1.2;">
                 COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
               </h1>
@@ -71,6 +81,9 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 <p>AVENIDA DOUTOR JOSÉ NEVES, 415</p>
                 <p>RIO POMBA - MG 36180.000-000</p>
               </div>
+            </div>
+            <div style="width: 120px; height: 80px; flex-shrink: 0;">
+              <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
           </div>
           <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
@@ -97,7 +110,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               .map(
                 (frete) => `
               <tr style="border-bottom: 1px solid #ccc;">
-                <td style="padding: 8px 4px;">${new Date(frete.data).toLocaleDateString("pt-BR")}</td>
+                <td style="padding: 8px 4px;">${formatarData(frete.data)}</td>
                 <td style="padding: 8px 4px;">${frete.carga}</td>
                 <td style="padding: 8px 4px;">${frete.km}</td>
                 <td style="padding: 8px 4px;">R$ ${(frete.valor + frete.chapada).toFixed(2)}</td>
@@ -140,7 +153,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 .map(
                   (debito) => `
                 <tr style="border-bottom: 1px solid #ccc;">
-                  <td style="padding: 8px 4px;">${new Date(debito.data).toLocaleDateString("pt-BR")}</td>
+                  <td style="padding: 8px 4px;">${formatarData(debito.data)}</td>
                   <td style="padding: 8px 4px;">${debito.descricao}</td>
                   <td style="padding: 8px 4px;">R$ ${debito.valor.toFixed(2)}</td>
                 </tr>

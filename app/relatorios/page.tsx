@@ -194,8 +194,7 @@ export default function RelatoriosPage() {
               <CardHeader>
                 <CardTitle className="text-center">Relatório de Fretes - {relatorio.cooperado_nome}</CardTitle>
                 <p className="text-center text-muted-foreground">
-                  Período: {new Date(dataInicio).toLocaleDateString("pt-BR")} a{" "}
-                  {new Date(dataFim).toLocaleDateString("pt-BR")}
+                  Período: {formatarData(dataInicio)} a {formatarData(dataFim)}
                 </p>
               </CardHeader>
               <CardContent>
@@ -273,7 +272,7 @@ export default function RelatoriosPage() {
               {/* Cabeçalho da Cooperativa */}
               <div className="text-center mb-5">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
+                  <div className="flex-1 pr-4">
                     <h1 className="text-lg font-bold mb-2">
                       COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
                     </h1>
@@ -283,8 +282,8 @@ export default function RelatoriosPage() {
                       <p>RIO POMBA - MG 36180.000-000</p>
                     </div>
                   </div>
-                  <div className="w-24 h-24 flex-shrink-0">
-                    <img src="/logo-cooperativa.png" alt="Logo Cooperativa" className="w-full h-full object-contain" />
+                  <div className="w-32 h-20 flex-shrink-0">
+                    <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" className="w-full h-full object-contain" />
                   </div>
                 </div>
 
