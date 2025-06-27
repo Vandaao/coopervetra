@@ -279,7 +279,7 @@ export default function RelatoriosPage() {
                     <div className="text-sm space-y-1">
                       <p>CNPJ: 05.332.862/0001-35</p>
                       <p>AVENIDA DOUTOR JOSÉ NEVES, 415</p>
-                      <p>RIO POMBA - MG 36180.000-000</p>
+                      <p>RIO POMBA - MG 36180-000</p>
                     </div>
                   </div>
                   <div className="w-32 h-20 flex-shrink-0">
@@ -409,11 +409,11 @@ export default function RelatoriosPage() {
                 <div className="grid grid-cols-2 gap-16">
                   <div className="text-center">
                     <div className="border-t border-black mb-2"></div>
-                    <p className="text-sm">ASSINATURA DO COOPERADO</p>
+                    <p className="text-sm"> {relatorio.cooperado_nome}</p>
                   </div>
                   <div className="text-center">
                     <div className="border-t border-black mb-2"></div>
-                    <p className="text-sm">ASSINATURA DA COOPERATIVA</p>
+                    <p className="text-sm">FILIPE BENTO COSTA (PRESIDENTE)</p>
                   </div>
                 </div>
               </div>

@@ -79,11 +79,11 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               <div style="font-size: 12px; line-height: 1.4;">
                 <p>CNPJ: 05.332.862/0001-35</p>
                 <p>AVENIDA DOUTOR JOSÉ NEVES, 415</p>
-                <p>RIO POMBA - MG 36180.000-000</p>
+                <p>RIO POMBA - MG 36180-000</p>
               </div>
             </div>
-            <div style="width: 120px; height: 80px; flex-shrink: 0;">
-              <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" style="width: 100%; height: 100%; object-fit: contain;" />
+            <div className="w-32 h-20 flex-shrink-0">
+                    <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" className="w-full h-full object-contain" />
             </div>
           </div>
           <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
@@ -216,11 +216,11 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
           <div style="display: flex; justify-content: space-between;">
             <div style="text-align: center; width: 45%;">
               <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
-              <p style="font-size: 10px;">ASSINATURA DO COOPERADO</p>
+              <p style="font-size: 10px;">${relatorio.cooperado_nome}</p>
             </div>
             <div style="text-align: center; width: 45%;">
               <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
-              <p style="font-size: 10px;">ASSINATURA DA COOPERATIVA</p>
+              <p style="font-size: 10px;">FILIPE BENTO COSTA (PRESIDENTE)</p>
             </div>
           </div>
         </div>

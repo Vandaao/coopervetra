@@ -11,7 +11,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Truck className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Sistema de Fretes</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Coopervetra - Sistema Gerenciador de Fretes</h1>
             </div>
           </div>
         </div>
