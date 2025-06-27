@@ -189,10 +189,10 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               <span style="font-weight: bold;">VALOR TOTAL FRETES: R$ ${relatorio.valor_bruto.toFixed(2)}</span>
             </div>
             <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO ADM: R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
+              <span style="font-weight: bold;">DESCONTO ADM 6%: R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
             </div>
             <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO INSS: R$ ${relatorio.desconto_inss.toFixed(2)}</span>
+              <span style="font-weight: bold;">DESCONTO INSS 4,5%: R$ ${relatorio.desconto_inss.toFixed(2)}</span>
             </div>
             ${
               relatorio.total_debitos > 0

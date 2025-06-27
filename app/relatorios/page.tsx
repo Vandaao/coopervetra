@@ -380,11 +380,11 @@ export default function RelatoriosPage() {
                     <span className="font-bold">R$ {relatorio.valor_bruto.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-bold">DESCONTO ADM:</span>
+                    <span className="font-bold">DESCONTO ADM 6%:</span>
                     <span className="font-bold text-red-600">R$ {relatorio.desconto_administrativo.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-bold">DESCONTO INSS:</span>
+                    <span className="font-bold">DESCONTO INSS 4,5%:</span>
                     <span className="font-bold text-red-600">R$ {relatorio.desconto_inss.toFixed(2)}</span>
                   </div>
                   {relatorio.total_debitos > 0 && (
