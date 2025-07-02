@@ -35,6 +35,7 @@ export default function DebitosPage() {
   const [data, setData] = useState("")
   const [valor, setValor] = useState("")
   const [loading, setLoading] = useState(false)
+  const [filtroCooperado, setFiltroCooperado] = useState("todos")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -145,6 +146,11 @@ export default function DebitosPage() {
     return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
   }
 
+  const debitosFiltrados =
+    filtroCooperado === "todos"
+      ? debitos
+      : debitos.filter((debito) => debito.cooperado_nome.toLowerCase().includes(filtroCooperado.toLowerCase()))
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -162,8 +168,8 @@ export default function DebitosPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <Card className="xl:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Plus className="h-5 w-5 mr-2" />
@@ -213,9 +219,41 @@ export default function DebitosPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Débitos Cadastrados</CardTitle>
+              <CardTitle>
+                Débitos Cadastrados
+                {filtroCooperado !== "todos" && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({debitosFiltrados.length} de {debitos.length} débitos)
+                  </span>
+                )}
+              </CardTitle>
+              <div className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <Label htmlFor="filtroCooperado">Filtrar por Cooperado</Label>
+                  <Select value={filtroCooperado} onValueChange={setFiltroCooperado}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os cooperados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os cooperados</SelectItem>
+                      {cooperados.map((cooperado) => (
+                        <SelectItem key={cooperado.id} value={cooperado.nome}>
+                          {cooperado.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setFiltroCooperado("todos")}
+                  disabled={filtroCooperado === "todos"}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -230,7 +268,7 @@ export default function DebitosPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {debitos.map((debito) => (
+                    {debitosFiltrados.map((debito) => (
                       <TableRow key={debito.id}>
                         <TableCell>{debito.cooperado_nome}</TableCell>
                         <TableCell>{debito.descricao}</TableCell>
