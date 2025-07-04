@@ -82,8 +82,8 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 <p>RIO POMBA - MG 36180-000</p>
               </div>
             </div>
-            <div className="w-32 h-20 flex-shrink-0">
-                    <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" className="w-full h-full object-contain" />
+            <div className="w-139 h-99 flex-shrink-0">
+                    <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" className="w-139 h-99 object-contain" />
             </div>
           </div>
           <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
