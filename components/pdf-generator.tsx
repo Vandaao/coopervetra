@@ -82,9 +82,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 <p>RIO POMBA - MG 36180-000</p>
               </div>
             </div>
-            <div className="w-139 h-99 flex-shrink-0">
-                    <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" className="w-139 h-99 object-contain" />
-            </div>
+          
           </div>
           <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
             <h2 style="font-size: 18px; font-weight: bold; margin: 0;">RELATÓRIO DE FRETES SEMANAIS</h2>
