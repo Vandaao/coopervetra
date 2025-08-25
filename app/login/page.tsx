@@ -138,18 +138,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Card temporário para debug - remover em produção */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">Para Teste:</h3>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p>
-                  <strong>Admin:</strong> adm / bemg23cav_ai
-                </p>
-                <p>
-                  <strong>Usuário:</strong> usuario1 / bemg23cav_ai
-                </p>
-              </div>
-            </div>
+            
           </CardContent>
         </Card>
       </div>
