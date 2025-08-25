@@ -6,7 +6,7 @@ const sql = neon(process.env.DATABASE_URL!)
 export async function GET() {
   try {
     const cooperados = await sql`
-      SELECT id, nome, cpf, placa 
+      SELECT id, nome, cpf, placa, conta_bancaria
       FROM cooperados 
       ORDER BY nome
     `
@@ -19,12 +19,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { nome, cpf, placa } = await request.json()
+    const { nome, cpf, placa, conta_bancaria } = await request.json()
 
     const result = await sql`
-      INSERT INTO cooperados (nome, cpf, placa)
-      VALUES (${nome}, ${cpf}, ${placa})
-      RETURNING id, nome, cpf, placa
+      INSERT INTO cooperados (nome, cpf, placa, conta_bancaria)
+      VALUES (${nome}, ${cpf}, ${placa}, ${conta_bancaria || null})
+      RETURNING id, nome, cpf, placa, conta_bancaria
     `
 
     return NextResponse.json(result[0], { status: 201 })

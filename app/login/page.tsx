@@ -31,6 +31,8 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
+    console.log("Iniciando login com:", { username, password: password ? "***" : "vazio" })
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -38,9 +40,13 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       })
 
+      console.log("Resposta do servidor:", response.status)
+
       const data = await response.json()
+      console.log("Dados da resposta:", data)
 
       if (response.ok) {
+        console.log("Login bem-sucedido, salvando sessão")
         setSession(data.user)
         toast({
           title: "Sucesso",
@@ -48,6 +54,7 @@ export default function LoginPage() {
         })
         router.push("/")
       } else {
+        console.log("Login falhou:", data.error)
         toast({
           title: "Erro",
           description: data.error || "Credenciais inválidas",
@@ -55,9 +62,10 @@ export default function LoginPage() {
         })
       }
     } catch (error) {
+      console.error("Erro na requisição:", error)
       toast({
         title: "Erro",
-        description: "Erro ao fazer login",
+        description: "Erro ao fazer login. Verifique sua conexão.",
         variant: "destructive",
       })
     } finally {
@@ -91,6 +99,7 @@ export default function LoginPage() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   placeholder="Digite seu usuário"
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -103,6 +112,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="Digite sua senha"
+                    disabled={loading}
                   />
                   <Button
                     type="button"
@@ -110,15 +120,36 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Entrando..." : "Entrar"}
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Entrando...
+                  </div>
+                ) : (
+                  "Entrar"
+                )}
               </Button>
             </form>
+
+            {/* Card temporário para debug - remover em produção */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Para Teste:</h3>
+              <div className="text-xs text-blue-700 space-y-1">
+                <p>
+                  <strong>Admin:</strong> adm / bemg23cav_ai
+                </p>
+                <p>
+                  <strong>Usuário:</strong> usuario1 / bemg23cav_ai
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

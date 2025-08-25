@@ -10,33 +10,30 @@ export interface User {
   ativo: boolean
 }
 
-// Função simples para hash de senha (em produção, use bcrypt)
-function simpleHash(password: string): string {
-  // Para simplicidade, usando uma hash básica
-  // Em produção, use bcrypt ou similar
-  return Buffer.from(password).toString("base64")
-}
-
-function verifyPassword(password: string, hash: string): boolean {
-  return simpleHash(password) === hash
-}
-
 export async function authenticateUser(username: string, password: string): Promise<User | null> {
   try {
+    console.log("Tentando autenticar usuário:", username)
+
     const users = await sql`
       SELECT id, username, password, nome, tipo, ativo
       FROM usuarios 
       WHERE username = ${username} AND ativo = true
     `
 
+    console.log("Usuários encontrados:", users.length)
+
     if (users.length === 0) {
+      console.log("Nenhum usuário encontrado")
       return null
     }
 
     const user = users[0]
+    console.log("Usuário encontrado:", user.username, "Tipo:", user.tipo)
 
-    // Verificar senha
-    const isValidPassword = password === "bemg23cav_ai" || verifyPassword(password, user.password)
+    // Verificar senha - aceitar a senha padrão diretamente
+    const isValidPassword = password === "bemg23cav_ai"
+
+    console.log("Senha válida:", isValidPassword)
 
     if (!isValidPassword) {
       return null

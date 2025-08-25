@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Truck, Users, Building2, Receipt, FileText } from "lucide-react"
+import { Truck, Users, Building2, Receipt, FileText, DollarSign } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
 import { UserInfo } from "@/components/user-info"
 
@@ -88,7 +88,7 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow md:col-span-2">
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="h-5 w-5 mr-2 text-orange-600" />
@@ -98,9 +98,37 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <Link href="/relatorios">
-                  <Button className="w-full" size="lg">
-                    Gerar Relatórios
-                  </Button>
+                  <Button className="w-full">Gerar Relatórios</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Building2 className="h-5 w-5 mr-2 text-indigo-600" />
+                  Relatórios por Empresa
+                </CardTitle>
+                <CardDescription>Gere relatórios consolidados por empresa com resumo completo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/relatorios-empresa">
+                  <Button className="w-full">Relatórios por Empresa</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2 text-emerald-600" />
+                  Folha de Pagamento
+                </CardTitle>
+                <CardDescription>Gere folha de pagamento com valores líquidos e contas bancárias</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/folha-pagamento">
+                  <Button className="w-full">Folha de Pagamento</Button>
                 </Link>
               </CardContent>
             </Card>
