@@ -11,9 +11,11 @@ export async function GET() {
         d.descricao,
         TO_CHAR(d.data, 'YYYY-MM-DD') as data,
         d.valor,
-        c.nome as cooperado_nome
+        c.nome as cooperado_nome,
+        e.nome as empresa_nome
       FROM debitos d
       JOIN cooperados c ON d.cooperado_id = c.id
+      JOIN empresas e ON d.empresa_id = e.id
       ORDER BY d.data DESC
     `
 
@@ -32,11 +34,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { cooperado_id, descricao, data, valor } = await request.json()
+    const { cooperado_id, empresa_id, descricao, data, valor } = await request.json()
 
     const result = await sql`
-      INSERT INTO debitos (cooperado_id, descricao, data, valor)
-      VALUES (${cooperado_id}, ${descricao}, ${data}::date, ${valor})
+      INSERT INTO debitos (cooperado_id, empresa_id, descricao, data, valor)
+      VALUES (${cooperado_id}, ${empresa_id}, ${descricao}, ${data}::date, ${valor})
       RETURNING id
     `
 

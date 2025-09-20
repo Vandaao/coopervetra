@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       ORDER BY c.nome
     `
 
-    // Buscar débitos no período para cada cooperado
+    // Buscar débitos no período para cada cooperado DA MESMA EMPRESA
     const cooperadosIds = fretesCooperados.map((f) => f.cooperado_id)
     let debitos = []
 
@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
           SUM(valor) as total_debitos
         FROM debitos
         WHERE cooperado_id = ANY(${cooperadosIds})
+          AND empresa_id = ${empresa_id}
           AND data >= ${data_inicio}::date
           AND data <= ${data_fim}::date
         GROUP BY cooperado_id
@@ -75,6 +76,24 @@ export async function GET(request: NextRequest) {
       ORDER BY f.cooperado_id, f.data
     `
 
+    // Buscar detalhes dos débitos para cada cooperado DA MESMA EMPRESA
+    let debitosDetalhados = []
+    if (cooperadosIds.length > 0) {
+      debitosDetalhados = await sql`
+        SELECT 
+          cooperado_id,
+          TO_CHAR(data, 'YYYY-MM-DD') as data,
+          descricao,
+          valor
+        FROM debitos
+        WHERE cooperado_id = ANY(${cooperadosIds})
+          AND empresa_id = ${empresa_id}
+          AND data >= ${data_inicio}::date
+          AND data <= ${data_fim}::date
+        ORDER BY cooperado_id, data
+      `
+    }
+
     // Processar dados por cooperado
     const cooperadosRelatorio = fretesCooperados.map((cooperado) => {
       const valorBruto = Number(cooperado.valor_bruto)
@@ -90,6 +109,9 @@ export async function GET(request: NextRequest) {
 
       // Buscar fretes detalhados do cooperado
       const fretesDoCooperado = fretesDetalhados.filter((f) => f.cooperado_id === cooperado.cooperado_id)
+
+      // Buscar débitos detalhados do cooperado
+      const debitosDoCooperado = debitosDetalhados.filter((d) => d.cooperado_id === cooperado.cooperado_id)
 
       return {
         cooperado_id: cooperado.cooperado_id,
@@ -110,6 +132,11 @@ export async function GET(request: NextRequest) {
           km: Number(f.km),
           valor: Number(f.valor),
           chapada: Number(f.chapada),
+        })),
+        debitos: debitosDoCooperado.map((d) => ({
+          data: d.data,
+          descricao: d.descricao,
+          valor: Number(d.valor),
         })),
       }
     })

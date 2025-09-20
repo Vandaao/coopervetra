@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       ORDER BY c.nome
     `
 
-    // Buscar débitos no período para cada cooperado
+    // Buscar débitos no período para cada cooperado DA MESMA EMPRESA
     const cooperadosIds = cooperadosPagamento.map((c) => c.cooperado_id)
     let debitos = []
 
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
           SUM(valor) as total_debitos
         FROM debitos
         WHERE cooperado_id = ANY(${cooperadosIds})
+          AND empresa_id = ${empresa_id}
           AND data >= ${data_inicio}::date
           AND data <= ${data_fim}::date
         GROUP BY cooperado_id

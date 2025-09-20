@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Plus, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -47,6 +48,8 @@ export default function FretesPage() {
   const [data, setData] = useState("")
   const [loading, setLoading] = useState(false)
   const [filtroCooperado, setFiltroCooperado] = useState("todos")
+  const [editingFrete, setEditingFrete] = useState<Frete | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -96,13 +99,27 @@ export default function FretesPage() {
     }
   }
 
+  const resetForm = () => {
+    setCooperadoId("")
+    setEmpresaId("")
+    setCarga("")
+    setKm("")
+    setValor("")
+    setChapada("0.00")
+    setData("")
+    setEditingFrete(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const response = await fetch("/api/fretes", {
-        method: "POST",
+      const url = editingFrete ? `/api/fretes/${editingFrete.id}` : "/api/fretes"
+      const method = editingFrete ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cooperado_id: Number.parseInt(cooperadoId),
@@ -118,23 +135,18 @@ export default function FretesPage() {
       if (response.ok) {
         toast({
           title: "Sucesso",
-          description: "Frete cadastrado com sucesso",
+          description: editingFrete ? "Frete atualizado com sucesso" : "Frete cadastrado com sucesso",
         })
-        setCooperadoId("")
-        setEmpresaId("")
-        setCarga("")
-        setKm("")
-        setValor("")
-        setChapada("0.00")
-        setData("")
+        resetForm()
+        setIsDialogOpen(false)
         fetchFretes()
       } else {
-        throw new Error("Erro ao cadastrar")
+        throw new Error("Erro ao salvar")
       }
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao cadastrar frete",
+        description: "Erro ao salvar frete",
         variant: "destructive",
       })
     } finally {
@@ -142,7 +154,33 @@ export default function FretesPage() {
     }
   }
 
+  const handleEdit = (frete: Frete) => {
+    setEditingFrete(frete)
+
+    // Encontrar os IDs baseados nos nomes
+    const cooperado = cooperados.find((c) => c.nome === frete.cooperado_nome)
+    const empresa = empresas.find((e) => e.nome === frete.empresa_nome)
+
+    setCooperadoId(cooperado?.id.toString() || "")
+    setEmpresaId(empresa?.id.toString() || "")
+    setCarga(frete.carga)
+    setKm(frete.km.toString())
+    setValor(frete.valor.toString())
+    setChapada(frete.chapada.toString())
+    setData(frete.data)
+    setIsDialogOpen(true)
+  }
+
+  const handleNewFrete = () => {
+    resetForm()
+    setIsDialogOpen(true)
+  }
+
   const handleDelete = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir este frete?")) {
+      return
+    }
+
     try {
       const response = await fetch(`/api/fretes/${id}`, {
         method: "DELETE",
@@ -199,97 +237,106 @@ export default function FretesPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <Card className="xl:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Plus className="h-5 w-5 mr-2" />
-                Cadastrar Frete
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="cooperado">Cooperado</Label>
-                  <Select value={cooperadoId} onValueChange={setCooperadoId} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cooperado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cooperados.map((cooperado) => (
-                        <SelectItem key={cooperado.id} value={cooperado.id.toString()}>
-                          {cooperado.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="empresa">Empresa</Label>
-                  <Select value={empresaId} onValueChange={setEmpresaId} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {empresas.map((empresa) => (
-                        <SelectItem key={empresa.id} value={empresa.id.toString()}>
-                          {empresa.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="carga">Carga</Label>
-                  <Input id="carga" value={carga} onChange={(e) => setCarga(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="km">KM</Label>
-                  <Input id="km" type="number" value={km} onChange={(e) => setKm(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="valor">Valor (R$)</Label>
-                  <Input
-                    id="valor"
-                    type="number"
-                    step="0.01"
-                    value={valor}
-                    onChange={(e) => setValor(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="chapada">Chapada (R$)</Label>
-                  <Input
-                    id="chapada"
-                    type="number"
-                    step="0.01"
-                    value={chapada}
-                    onChange={(e) => setChapada(e.target.value)}
-                    placeholder="0.00"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="data">Data</Label>
-                  <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Cadastrando..." : "Cadastrar Frete"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>
-                Fretes Cadastrados
-                {filtroCooperado !== "todos" && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({fretesFiltrados.length} de {fretes.length} fretes)
-                  </span>
-                )}
-              </CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>
+                  Fretes Cadastrados
+                  {filtroCooperado !== "todos" && (
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      ({fretesFiltrados.length} de {fretes.length} fretes)
+                    </span>
+                  )}
+                </CardTitle>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={handleNewFrete}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Frete
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>{editingFrete ? "Editar Frete" : "Novo Frete"}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="cooperado">Cooperado</Label>
+                        <Select value={cooperadoId} onValueChange={setCooperadoId} required>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o cooperado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cooperados.map((cooperado) => (
+                              <SelectItem key={cooperado.id} value={cooperado.id.toString()}>
+                                {cooperado.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="empresa">Empresa</Label>
+                        <Select value={empresaId} onValueChange={setEmpresaId} required>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a empresa" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {empresas.map((empresa) => (
+                              <SelectItem key={empresa.id} value={empresa.id.toString()}>
+                                {empresa.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="carga">Carga</Label>
+                        <Input id="carga" value={carga} onChange={(e) => setCarga(e.target.value)} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="km">KM</Label>
+                        <Input id="km" type="number" value={km} onChange={(e) => setKm(e.target.value)} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="valor">Valor (R$)</Label>
+                        <Input
+                          id="valor"
+                          type="number"
+                          step="0.01"
+                          value={valor}
+                          onChange={(e) => setValor(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="chapada">Chapada (R$)</Label>
+                        <Input
+                          id="chapada"
+                          type="number"
+                          step="0.01"
+                          value={chapada}
+                          onChange={(e) => setChapada(e.target.value)}
+                          placeholder="0.00"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="data">Data</Label>
+                        <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={loading} className="flex-1">
+                          {loading ? "Salvando..." : editingFrete ? "Atualizar" : "Cadastrar"}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
                   <Label htmlFor="filtroCooperado">Filtrar por Cooperado</Label>
@@ -342,9 +389,14 @@ export default function FretesPage() {
                         <TableCell>R$ {Number(frete.chapada).toFixed(2)}</TableCell>
                         <TableCell>{formatarData(frete.data)}</TableCell>
                         <TableCell>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(frete.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(frete)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(frete.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
