@@ -306,6 +306,7 @@ export default function RelatoriosPage() {
                       <th className="text-left py-2 px-1 font-bold">CARGA</th>
                       <th className="text-left py-2 px-1 font-bold">KM</th>
                       <th className="text-left py-2 px-1 font-bold">VALOR</th>
+                      <th className="text-left py-2 px-1 font-bold">CHAPADA</th>
                       <th className="text-left py-2 px-1 font-bold">EMPRESA</th>
                     </tr>
                   </thead>
@@ -315,13 +316,15 @@ export default function RelatoriosPage() {
                         <td className="py-2 px-1">{formatarData(frete.data)}</td>
                         <td className="py-2 px-1">{frete.carga}</td>
                         <td className="py-2 px-1">{frete.km}</td>
-                        <td className="py-2 px-1">R$ {(frete.valor + frete.chapada).toFixed(2)}</td>
+                        <td className="py-2 px-1">R$ {frete.valor.toFixed(2)}</td>
+                        <td className="py-2 px-1">R$ {frete.chapada.toFixed(2)}</td>
                         <td className="py-2 px-1">{frete.empresa_nome}</td>
                       </tr>
                     ))}
                     {/* Linhas em branco para completar o espaço */}
                     {Array.from({ length: Math.max(0, 6 - relatorio.fretes.length) }).map((_, index) => (
                       <tr key={`empty-${index}`} className="border-b border-gray-300">
+                        <td className="py-2 px-1">&nbsp;</td>
                         <td className="py-2 px-1">&nbsp;</td>
                         <td className="py-2 px-1">&nbsp;</td>
                         <td className="py-2 px-1">&nbsp;</td>

@@ -100,6 +100,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               <th style="text-align: left; padding: 8px 4px; font-weight: bold;">CARGA</th>
               <th style="text-align: left; padding: 8px 4px; font-weight: bold;">KM</th>
               <th style="text-align: left; padding: 8px 4px; font-weight: bold;">VALOR</th>
+              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">CHAPADA</th>
               <th style="text-align: left; padding: 8px 4px; font-weight: bold;">EMPRESA</th>
             </tr>
           </thead>
@@ -111,7 +112,8 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 <td style="padding: 8px 4px;">${formatarData(frete.data)}</td>
                 <td style="padding: 8px 4px;">${frete.carga}</td>
                 <td style="padding: 8px 4px;">${frete.km}</td>
-                <td style="padding: 8px 4px;">R$ ${(frete.valor + frete.chapada).toFixed(2)}</td>
+                <td style="padding: 8px 4px;">R$ ${frete.valor.toFixed(2)}</td>
+                <td style="padding: 8px 4px;">R$ ${frete.chapada.toFixed(2)}</td>
                 <td style="padding: 8px 4px;">${frete.empresa_nome}</td>
               </tr>
             `,
@@ -121,6 +123,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               .map(
                 () => `
               <tr style="border-bottom: 1px solid #ccc;">
+                <td style="padding: 8px 4px;">&nbsp;</td>
                 <td style="padding: 8px 4px;">&nbsp;</td>
                 <td style="padding: 8px 4px;">&nbsp;</td>
                 <td style="padding: 8px 4px;">&nbsp;</td>
