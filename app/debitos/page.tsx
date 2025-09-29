@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, FileText, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -48,6 +48,11 @@ export default function DebitosPage() {
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos")
   const [editingDebito, setEditingDebito] = useState<Debito | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dataRelatorioInicio, setDataRelatorioInicio] = useState("")
+  const [dataRelatorioFim, setDataRelatorioFim] = useState("")
+  const [relatorioDebitos, setRelatorioDebitos] = useState<any>(null)
+  const [loadingRelatorio, setLoadingRelatorio] = useState(false)
+  const [showRelatorio, setShowRelatorio] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -192,6 +197,48 @@ export default function DebitosPage() {
         variant: "destructive",
       })
     }
+  }
+
+  const handleGerarRelatorioDebitos = async () => {
+    if (!dataRelatorioInicio || !dataRelatorioFim) {
+      toast({
+        title: "Erro",
+        description: "Preencha as datas para gerar o relatório",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoadingRelatorio(true)
+    try {
+      const response = await fetch(
+        `/api/relatorios/debitos?data_inicio=${dataRelatorioInicio}&data_fim=${dataRelatorioFim}`,
+      )
+      const data = await response.json()
+
+      if (response.ok) {
+        setRelatorioDebitos(data)
+        setShowRelatorio(true)
+        toast({
+          title: "Sucesso",
+          description: "Relatório de débitos gerado com sucesso",
+        })
+      } else {
+        throw new Error(data.error || "Erro ao gerar relatório")
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar relatório de débitos",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingRelatorio(false)
+    }
+  }
+
+  const handleImprimirRelatorio = () => {
+    window.print()
   }
 
   const formatarData = (dataString: string) => {
@@ -407,6 +454,213 @@ export default function DebitosPage() {
                   </TableBody>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Seção de Relatório */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                Relatório de Débitos por Período
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <Label htmlFor="dataRelatorioInicio">Data Início</Label>
+                  <Input
+                    id="dataRelatorioInicio"
+                    type="date"
+                    value={dataRelatorioInicio}
+                    onChange={(e) => setDataRelatorioInicio(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dataRelatorioFim">Data Fim</Label>
+                  <Input
+                    id="dataRelatorioFim"
+                    type="date"
+                    value={dataRelatorioFim}
+                    onChange={(e) => setDataRelatorioFim(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleGerarRelatorioDebitos} disabled={loadingRelatorio} className="w-full">
+                    {loadingRelatorio ? "Gerando..." : "Gerar Relatório"}
+                  </Button>
+                </div>
+                {relatorioDebitos && (
+                  <div className="flex items-end">
+                    <Button
+                      onClick={handleImprimirRelatorio}
+                      variant="outline"
+                      className="w-full print:hidden bg-transparent"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Imprimir
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {showRelatorio && relatorioDebitos && (
+                <div className="mt-6">
+                  <div className="flex justify-between items-center mb-4 print:hidden">
+                    <h3 className="text-lg font-semibold">Relatório Gerado</h3>
+                    <Button variant="outline" onClick={() => setShowRelatorio(false)} size="sm">
+                      Fechar Relatório
+                    </Button>
+                  </div>
+
+                  {/* Versão para tela */}
+                  <div className="print:hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Total de Débitos</p>
+                        <p className="text-2xl font-bold text-red-600">{relatorioDebitos.total_debitos}</p>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Cooperados</p>
+                        <p className="text-2xl font-bold text-orange-600">{relatorioDebitos.total_cooperados}</p>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Empresas</p>
+                        <p className="text-2xl font-bold text-purple-600">{relatorioDebitos.total_empresas}</p>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Valor Total</p>
+                        <p className="text-2xl font-bold text-gray-600">R$ {relatorioDebitos.valor_total.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Cooperado</TableHead>
+                          <TableHead>Empresa</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {relatorioDebitos.debitos.map((debito: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell>{formatarData(debito.data)}</TableCell>
+                            <TableCell>{debito.cooperado_nome}</TableCell>
+                            <TableCell>{debito.empresa_nome}</TableCell>
+                            <TableCell>{debito.descricao}</TableCell>
+                            <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Versão para impressão */}
+                  <div className="hidden print:block print:text-black">
+                    <div className="text-center mb-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 pr-4">
+                          <h1 className="text-lg font-bold mb-2">
+                            COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
+                          </h1>
+                          <div className="text-sm space-y-1">
+                            <p>CNPJ: 05.332.862/0001-35</p>
+                            <p>AVENIDA DOUTOR JOSÉ NEVES, 415</p>
+                            <p>RIO POMBA - MG 36180-000</p>
+                          </div>
+                        </div>
+                        <div className="w-32 h-20 flex-shrink-0">
+                          <img
+                            src="/logo-coopervetra.jpg"
+                            alt="Logo COOPERVETRA"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="border-t-2 border-b-2 border-black py-2 my-4">
+                        <h2 className="text-xl font-bold">RELATÓRIO DE DÉBITOS</h2>
+                        <p className="text-sm">
+                          Período: {formatarData(dataRelatorioInicio)} a {formatarData(dataRelatorioFim)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Resumo */}
+                    <div className="grid grid-cols-4 gap-4 mb-6 text-center">
+                      <div className="border border-black p-2">
+                        <p className="text-xs font-bold">TOTAL DÉBITOS</p>
+                        <p className="text-lg font-bold">{relatorioDebitos.total_debitos}</p>
+                      </div>
+                      <div className="border border-black p-2">
+                        <p className="text-xs font-bold">COOPERADOS</p>
+                        <p className="text-lg font-bold">{relatorioDebitos.total_cooperados}</p>
+                      </div>
+                      <div className="border border-black p-2">
+                        <p className="text-xs font-bold">EMPRESAS</p>
+                        <p className="text-lg font-bold">{relatorioDebitos.total_empresas}</p>
+                      </div>
+                      <div className="border border-black p-2">
+                        <p className="text-xs font-bold">VALOR TOTAL</p>
+                        <p className="text-lg font-bold">R$ {relatorioDebitos.valor_total.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    {/* Tabela de Débitos */}
+                    <div className="mb-6">
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="border-2 border-black">
+                            <th className="border border-black p-1 font-bold">DATA</th>
+                            <th className="border border-black p-1 font-bold">COOPERADO</th>
+                            <th className="border border-black p-1 font-bold">EMPRESA</th>
+                            <th className="border border-black p-1 font-bold">DESCRIÇÃO</th>
+                            <th className="border border-black p-1 font-bold">VALOR</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {relatorioDebitos.debitos.map((debito: any, index: number) => (
+                            <tr key={index}>
+                              <td className="border border-black p-1">{formatarData(debito.data)}</td>
+                              <td className="border border-black p-1">{debito.cooperado_nome}</td>
+                              <td className="border border-black p-1">{debito.empresa_nome}</td>
+                              <td className="border border-black p-1">{debito.descricao}</td>
+                              <td className="border border-black p-1 text-right">
+                                R$ {Number(debito.valor).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-gray-200 font-bold">
+                            <td className="border-2 border-black p-1" colSpan={4}>
+                              TOTAL GERAL
+                            </td>
+                            <td className="border-2 border-black p-1 text-right">
+                              R$ {relatorioDebitos.valor_total.toFixed(2)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Assinaturas */}
+                    <div className="mt-12 pt-6">
+                      <div className="grid grid-cols-2 gap-16">
+                        <div className="text-center">
+                          <div className="border-t border-black mb-2"></div>
+                          <p className="text-sm">RESPONSÁVEL FINANCEIRO</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="border-t border-black mb-2"></div>
+                          <p className="text-sm">FILIPE BENTO COSTA (PRESIDENTE)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
