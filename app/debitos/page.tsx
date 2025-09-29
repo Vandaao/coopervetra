@@ -268,8 +268,8 @@ export default function DebitosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-white shadow-sm border-b print:hidden">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-6">
             <Link href="/">
               <Button variant="ghost" size="sm" className="mr-4">
@@ -277,32 +277,33 @@ export default function DebitosPage() {
                 Voltar
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Gerenciar Débitos</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gerenciar Débitos</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <Card className="xl:col-span-2">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 print:px-8">
+        <div className="space-y-6">
+          {/* Card Principal de Débitos */}
+          <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-lg sm:text-xl">
                   Débitos Cadastrados
                   {(filtroCooperado !== "todos" || filtroEmpresa !== "todos") && (
-                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                    <span className="text-sm font-normal text-muted-foreground ml-2 block sm:inline">
                       ({debitosFiltrados.length} de {debitos.length} débitos)
                     </span>
                   )}
                 </CardTitle>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button onClick={handleNewDebito}>
+                    <Button onClick={handleNewDebito} className="w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
                       Novo Débito
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className="max-w-md mx-4">
                     <DialogHeader>
                       <DialogTitle>{editingDebito ? "Editar Débito" : "Novo Débito"}</DialogTitle>
                     </DialogHeader>
@@ -373,7 +374,9 @@ export default function DebitosPage() {
                   </DialogContent>
                 </Dialog>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div>
                   <Label htmlFor="filtroCooperado">Filtrar por Cooperado</Label>
                   <Select value={filtroCooperado} onValueChange={setFiltroCooperado}>
@@ -406,16 +409,19 @@ export default function DebitosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFiltroCooperado("todos")
-                    setFiltroEmpresa("todos")
-                  }}
-                  disabled={filtroCooperado === "todos" && filtroEmpresa === "todos"}
-                >
-                  Limpar Filtros
-                </Button>
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFiltroCooperado("todos")
+                      setFiltroEmpresa("todos")
+                    }}
+                    disabled={filtroCooperado === "todos" && filtroEmpresa === "todos"}
+                    className="w-full"
+                  >
+                    Limpar Filtros
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -423,20 +429,22 @@ export default function DebitosPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cooperado</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="min-w-[120px]">Cooperado</TableHead>
+                      <TableHead className="min-w-[120px]">Empresa</TableHead>
+                      <TableHead className="min-w-[150px]">Descrição</TableHead>
+                      <TableHead className="min-w-[100px]">Data</TableHead>
+                      <TableHead className="min-w-[100px]">Valor</TableHead>
+                      <TableHead className="min-w-[120px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {debitosFiltrados.map((debito) => (
                       <TableRow key={debito.id}>
-                        <TableCell>{debito.cooperado_nome}</TableCell>
+                        <TableCell className="font-medium">{debito.cooperado_nome}</TableCell>
                         <TableCell>{debito.empresa_nome}</TableCell>
-                        <TableCell>{debito.descricao}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={debito.descricao}>
+                          {debito.descricao}
+                        </TableCell>
                         <TableCell>{formatarData(debito.data)}</TableCell>
                         <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
                         <TableCell>
@@ -457,16 +465,16 @@ export default function DebitosPage() {
             </CardContent>
           </Card>
 
-          {/* Seção de Relatório */}
-          <Card className="mt-8">
+          {/* Card de Relatório */}
+          <Card className="print:hidden">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-lg sm:text-xl">
                 <FileText className="h-5 w-5 mr-2" />
                 Relatório de Débitos por Período
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <div>
                   <Label htmlFor="dataRelatorioInicio">Data Início</Label>
                   <Input
@@ -487,75 +495,81 @@ export default function DebitosPage() {
                 </div>
                 <div className="flex items-end">
                   <Button onClick={handleGerarRelatorioDebitos} disabled={loadingRelatorio} className="w-full">
-                    {loadingRelatorio ? "Gerando..." : "Gerar Relatório"}
+                    {loadingRelatorio ? "Gerando..." : "Gerar"}
                   </Button>
                 </div>
                 {relatorioDebitos && (
-                  <div className="flex items-end">
-                    <Button
-                      onClick={handleImprimirRelatorio}
-                      variant="outline"
-                      className="w-full print:hidden bg-transparent"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Imprimir
-                    </Button>
-                  </div>
+                  <>
+                    <div className="flex items-end">
+                      <Button onClick={handleImprimirRelatorio} variant="outline" className="w-full bg-transparent">
+                        <Download className="h-4 w-4 mr-2" />
+                        Imprimir
+                      </Button>
+                    </div>
+                    <div className="flex items-end">
+                      <Button variant="outline" onClick={() => setShowRelatorio(false)} className="w-full">
+                        Fechar
+                      </Button>
+                    </div>
+                  </>
                 )}
               </div>
 
               {showRelatorio && relatorioDebitos && (
                 <div className="mt-6">
-                  <div className="flex justify-between items-center mb-4 print:hidden">
-                    <h3 className="text-lg font-semibold">Relatório Gerado</h3>
-                    <Button variant="outline" onClick={() => setShowRelatorio(false)} size="sm">
-                      Fechar Relatório
-                    </Button>
-                  </div>
-
                   {/* Versão para tela */}
                   <div className="print:hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                       <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Total de Débitos</p>
-                        <p className="text-2xl font-bold text-red-600">{relatorioDebitos.total_debitos}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Total de Débitos</p>
+                        <p className="text-lg sm:text-2xl font-bold text-red-600">{relatorioDebitos.total_debitos}</p>
                       </div>
                       <div className="text-center p-4 bg-orange-50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Cooperados</p>
-                        <p className="text-2xl font-bold text-orange-600">{relatorioDebitos.total_cooperados}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Cooperados</p>
+                        <p className="text-lg sm:text-2xl font-bold text-orange-600">
+                          {relatorioDebitos.total_cooperados}
+                        </p>
                       </div>
                       <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Empresas</p>
-                        <p className="text-2xl font-bold text-purple-600">{relatorioDebitos.total_empresas}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Empresas</p>
+                        <p className="text-lg sm:text-2xl font-bold text-purple-600">
+                          {relatorioDebitos.total_empresas}
+                        </p>
                       </div>
                       <div className="text-center p-4 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Valor Total</p>
-                        <p className="text-2xl font-bold text-gray-600">R$ {relatorioDebitos.valor_total.toFixed(2)}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Valor Total</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-600">
+                          R$ {relatorioDebitos.valor_total.toFixed(2)}
+                        </p>
                       </div>
                     </div>
 
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Cooperado</TableHead>
-                          <TableHead>Empresa</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Valor</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {relatorioDebitos.debitos.map((debito: any, index: number) => (
-                          <TableRow key={index}>
-                            <TableCell>{formatarData(debito.data)}</TableCell>
-                            <TableCell>{debito.cooperado_nome}</TableCell>
-                            <TableCell>{debito.empresa_nome}</TableCell>
-                            <TableCell>{debito.descricao}</TableCell>
-                            <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Data</TableHead>
+                            <TableHead className="min-w-[120px]">Cooperado</TableHead>
+                            <TableHead className="min-w-[120px]">Empresa</TableHead>
+                            <TableHead className="min-w-[150px]">Descrição</TableHead>
+                            <TableHead className="min-w-[100px]">Valor</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {relatorioDebitos.debitos.map((debito: any, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell>{formatarData(debito.data)}</TableCell>
+                              <TableCell>{debito.cooperado_nome}</TableCell>
+                              <TableCell>{debito.empresa_nome}</TableCell>
+                              <TableCell className="max-w-[200px] truncate" title={debito.descricao}>
+                                {debito.descricao}
+                              </TableCell>
+                              <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
 
                   {/* Versão para impressão */}
