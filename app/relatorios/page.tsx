@@ -17,8 +17,14 @@ interface Cooperado {
   nome: string
 }
 
+interface Empresa {
+  id: number
+  nome: string
+}
+
 interface RelatorioData {
   cooperado_nome: string
+  empresa_nome?: string
   total_fretes: number
   total_valor: number
   total_chapada: number
@@ -46,7 +52,9 @@ interface RelatorioData {
 
 export default function RelatoriosPage() {
   const [cooperados, setCooperados] = useState<Cooperado[]>([])
+  const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [cooperadoId, setCooperadoId] = useState("")
+  const [empresaId, setEmpresaId] = useState("todas")
   const [dataInicio, setDataInicio] = useState("")
   const [dataFim, setDataFim] = useState("")
   const [relatorio, setRelatorio] = useState<RelatorioData | null>(null)
@@ -55,6 +63,7 @@ export default function RelatoriosPage() {
 
   useEffect(() => {
     fetchCooperados()
+    fetchEmpresas()
   }, [])
 
   const fetchCooperados = async () => {
@@ -67,11 +76,21 @@ export default function RelatoriosPage() {
     }
   }
 
+  const fetchEmpresas = async () => {
+    try {
+      const response = await fetch("/api/empresas")
+      const data = await response.json()
+      setEmpresas(data)
+    } catch (error) {
+      console.error("Erro ao carregar empresas:", error)
+    }
+  }
+
   const handleGerarRelatorio = async () => {
     if (!cooperadoId || !dataInicio || !dataFim) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos",
+        description: "Preencha cooperado e datas",
         variant: "destructive",
       })
       return
@@ -79,9 +98,13 @@ export default function RelatoriosPage() {
 
     setLoading(true)
     try {
-      const response = await fetch(
-        `/api/relatorios?cooperado_id=${cooperadoId}&data_inicio=${dataInicio}&data_fim=${dataFim}`,
-      )
+      let url = `/api/relatorios?cooperado_id=${cooperadoId}&data_inicio=${dataInicio}&data_fim=${dataFim}`
+
+      if (empresaId !== "todas") {
+        url += `&empresa_id=${empresaId}`
+      }
+
+      const response = await fetch(url)
       const data = await response.json()
 
       if (response.ok) {
@@ -121,7 +144,7 @@ export default function RelatoriosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-6">
             <Link href="/">
               <Button variant="ghost" size="sm" className="mr-4">
@@ -129,21 +152,21 @@ export default function RelatoriosPage() {
                 Voltar
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Relatórios de Fretes</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Relatórios de Fretes</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:max-w-none print:px-8">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 print:max-w-none print:px-8">
         <Card className="mb-8 print:hidden">
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center text-lg sm:text-xl">
               <FileText className="h-5 w-5 mr-2" />
               Gerar Relatório
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <Label htmlFor="cooperado">Cooperado</Label>
                 <Select value={cooperadoId} onValueChange={setCooperadoId}>
@@ -160,6 +183,22 @@ export default function RelatoriosPage() {
                 </Select>
               </div>
               <div>
+                <Label htmlFor="empresa">Empresa</Label>
+                <Select value={empresaId} onValueChange={setEmpresaId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as empresas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as empresas</SelectItem>
+                    {empresas.map((empresa) => (
+                      <SelectItem key={empresa.id} value={empresa.id.toString()}>
+                        {empresa.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="dataInicio">Data Início</Label>
                 <Input id="dataInicio" type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
               </div>
@@ -169,7 +208,7 @@ export default function RelatoriosPage() {
               </div>
               <div className="flex items-end">
                 <Button onClick={handleGerarRelatorio} disabled={loading} className="w-full">
-                  {loading ? "Gerando..." : "Gerar Relatório"}
+                  {loading ? "Gerando..." : "Gerar"}
                 </Button>
               </div>
             </div>
@@ -178,10 +217,10 @@ export default function RelatoriosPage() {
 
         {relatorio && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center print:hidden">
-              <h2 className="text-xl font-bold">Relatório Gerado</h2>
-              <div className="flex gap-2">
-                <Button onClick={handleImprimir}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+              <h2 className="text-lg sm:text-xl font-bold">Relatório Gerado</h2>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={handleImprimir} className="flex-1 sm:flex-none">
                   <Download className="h-4 w-4 mr-2" />
                   Imprimir
                 </Button>
@@ -194,74 +233,85 @@ export default function RelatoriosPage() {
               <CardHeader>
                 <CardTitle className="text-center">Relatório de Fretes - {relatorio.cooperado_nome}</CardTitle>
                 <p className="text-center text-muted-foreground">
+                  {relatorio.empresa_nome && (
+                    <span className="font-semibold">Empresa: {relatorio.empresa_nome} | </span>
+                  )}
                   Período: {formatarData(dataInicio)} a {formatarData(dataFim)}
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Total de Fretes</p>
-                    <p className="text-2xl font-bold text-blue-600">{relatorio.total_fretes}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Total de Fretes</p>
+                    <p className="text-lg sm:text-2xl font-bold text-blue-600">{relatorio.total_fretes}</p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Valor Bruto</p>
-                    <p className="text-2xl font-bold text-green-600">R$ {relatorio.valor_bruto.toFixed(2)}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Valor Bruto</p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-600">
+                      R$ {relatorio.valor_bruto.toFixed(2)}
+                    </p>
                   </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Valor Líquido</p>
-                    <p className="text-2xl font-bold text-purple-600">R$ {relatorio.valor_liquido.toFixed(2)}</p>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg col-span-2 sm:col-span-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Valor Líquido</p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-600">
+                      R$ {relatorio.valor_liquido.toFixed(2)}
+                    </p>
                   </div>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Carga</TableHead>
-                      <TableHead>KM</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Chapada</TableHead>
-                      <TableHead>Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {relatorio.fretes.map((frete, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{formatarData(frete.data)}</TableCell>
-                        <TableCell>{frete.empresa_nome}</TableCell>
-                        <TableCell>{frete.carga}</TableCell>
-                        <TableCell>{frete.km}</TableCell>
-                        <TableCell>R$ {frete.valor.toFixed(2)}</TableCell>
-                        <TableCell>R$ {frete.chapada.toFixed(2)}</TableCell>
-                        <TableCell>R$ {(frete.valor + frete.chapada).toFixed(2)}</TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[100px]">Data</TableHead>
+                        <TableHead className="min-w-[120px]">Empresa</TableHead>
+                        <TableHead className="min-w-[100px]">Carga</TableHead>
+                        <TableHead className="min-w-[80px]">KM</TableHead>
+                        <TableHead className="min-w-[100px]">Valor</TableHead>
+                        <TableHead className="min-w-[100px]">Chapada</TableHead>
+                        <TableHead className="min-w-[100px]">Total</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {relatorio.fretes.map((frete, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{formatarData(frete.data)}</TableCell>
+                          <TableCell>{frete.empresa_nome}</TableCell>
+                          <TableCell>{frete.carga}</TableCell>
+                          <TableCell>{frete.km}</TableCell>
+                          <TableCell>R$ {frete.valor.toFixed(2)}</TableCell>
+                          <TableCell>R$ {frete.chapada.toFixed(2)}</TableCell>
+                          <TableCell>R$ {(frete.valor + frete.chapada).toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
                 {/* Seção de Débitos */}
                 {relatorio.debitos.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-lg font-semibold mb-4">Débitos no Período</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Valor</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {relatorio.debitos.map((debito, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{formatarData(debito.data)}</TableCell>
-                            <TableCell>{debito.descricao}</TableCell>
-                            <TableCell>R$ {debito.valor.toFixed(2)}</TableCell>
+                    <h3 className="text-base sm:text-lg font-semibold mb-4">Débitos no Período</h3>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Data</TableHead>
+                            <TableHead className="min-w-[200px]">Descrição</TableHead>
+                            <TableHead className="min-w-[100px]">Valor</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {relatorio.debitos.map((debito, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{formatarData(debito.data)}</TableCell>
+                              <TableCell>{debito.descricao}</TableCell>
+                              <TableCell>R$ {debito.valor.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -289,6 +339,9 @@ export default function RelatoriosPage() {
 
                 <div className="border-t-2 border-b-2 border-black py-2 my-4">
                   <h2 className="text-xl font-bold">RELATÓRIO DE FRETES SEMANAIS</h2>
+                  {relatorio.empresa_nome && (
+                    <p className="text-base font-semibold mt-1">Empresa: {relatorio.empresa_nome}</p>
+                  )}
                 </div>
               </div>
 

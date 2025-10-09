@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast"
 
 interface RelatorioData {
   cooperado_nome: string
+  empresa_nome?: string
   total_fretes: number
   total_valor: number
   total_chapada: number
@@ -70,7 +71,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       pdfContent.style.color = "black"
 
       pdfContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-center; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
             <div style="flex: 1; padding-right: 20px;">
               <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; line-height: 1.2;">
@@ -86,6 +87,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
           </div>
           <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
             <h2 style="font-size: 18px; font-weight: bold; margin: 0;">RELATÓRIO DE FRETES SEMANAIS</h2>
+            ${relatorio.empresa_nome ? `<p style="font-size: 14px; font-weight: bold; margin: 5px 0;">Empresa: ${relatorio.empresa_nome}</p>` : ""}
           </div>
         </div>
 
@@ -265,7 +267,8 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       }
 
       // Salvar o PDF
-      const nomeArquivo = `relatorio-${relatorio.cooperado_nome.replace(/\s+/g, "-")}-${dataInicio}-${dataFim}.pdf`
+      const empresaSuffix = relatorio.empresa_nome ? `-${relatorio.empresa_nome.replace(/\s+/g, "-")}` : ""
+      const nomeArquivo = `relatorio-${relatorio.cooperado_nome.replace(/\s+/g, "-")}${empresaSuffix}-${dataInicio}-${dataFim}.pdf`
       pdf.save(nomeArquivo)
 
       toast({
@@ -285,7 +288,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
   }
 
   return (
-    <Button onClick={generatePDF} disabled={loading} variant="outline">
+    <Button onClick={generatePDF} disabled={loading} variant="outline" className="flex-1 sm:flex-none bg-transparent">
       <FileText className="h-4 w-4 mr-2" />
       {loading ? "Gerando PDF..." : "Salvar PDF"}
     </Button>
