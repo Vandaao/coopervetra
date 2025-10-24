@@ -11,8 +11,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit, FileText, Download } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -32,6 +40,9 @@ interface Debito {
   descricao: string
   data: string
   valor: number
+  status: "pendente" | "pago"
+  data_baixa: string | null
+  observacao_baixa: string | null
 }
 
 export default function DebitosPage() {
@@ -46,26 +57,81 @@ export default function DebitosPage() {
   const [loading, setLoading] = useState(false)
   const [filtroCooperado, setFiltroCooperado] = useState("todos")
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos")
+  const [filtroStatus, setFiltroStatus] = useState("todos")
   const [editingDebito, setEditingDebito] = useState<Debito | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [dataRelatorioInicio, setDataRelatorioInicio] = useState("")
-  const [dataRelatorioFim, setDataRelatorioFim] = useState("")
-  const [relatorioDebitos, setRelatorioDebitos] = useState<any>(null)
-  const [loadingRelatorio, setLoadingRelatorio] = useState(false)
-  const [showRelatorio, setShowRelatorio] = useState(false)
+  const [isPagamentoDialogOpen, setIsPagamentoDialogOpen] = useState(false)
+  const [debitoParaPagar, setDebitoParaPagar] = useState<Debito | null>(null)
+  const [dataBaixa, setDataBaixa] = useState("")
+  const [observacaoBaixa, setObservacaoBaixa] = useState("")
+  const [loadingPagamento, setLoadingPagamento] = useState(false)
+  const [needsMigration, setNeedsMigration] = useState(false)
+  const [isExecutingMigration, setIsExecutingMigration] = useState(false)
   const { toast } = useToast()
+
+  const executeMigration = async () => {
+    setIsExecutingMigration(true)
+    try {
+      const response = await fetch("/api/admin/executar-migracao", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        console.log("Migração executada com sucesso:", data)
+        setNeedsMigration(false)
+        // Recarregar débitos após migração
+        await fetchDebitos()
+        return true
+      } else {
+        console.error("Erro ao executar migração:", data)
+        throw new Error(data.error || "Erro ao executar migração")
+      }
+    } catch (error) {
+      console.error("Erro na migração:", error)
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao executar migração",
+        variant: "destructive",
+      })
+      return false
+    } finally {
+      setIsExecutingMigration(false)
+    }
+  }
+
+  const checkMigrationStatus = async () => {
+    try {
+      const response = await fetch("/api/debitos")
+      const data = await response.json()
+
+      // Check if any debito has the status property
+      if (data.length > 0) {
+        const hasMigration = data[0].hasOwnProperty("status")
+        console.log("Status da migração:", hasMigration ? "Completa" : "Necessária")
+        setNeedsMigration(!hasMigration)
+        return hasMigration
+      }
+      return false
+    } catch (error) {
+      console.error("Erro ao verificar status da migração:", error)
+      setNeedsMigration(true)
+      return false
+    }
+  }
 
   useEffect(() => {
     fetchDebitos()
     fetchCooperados()
     fetchEmpresas()
+    checkMigrationStatus()
   }, [])
 
   const fetchDebitos = async () => {
     try {
       const response = await fetch("/api/debitos")
       const data = await response.json()
-      // Converter valores para números
       const debitosFormatados = data.map((debito: any) => ({
         ...debito,
         valor: Number(debito.valor),
@@ -138,12 +204,14 @@ export default function DebitosPage() {
         setIsDialogOpen(false)
         fetchDebitos()
       } else {
-        throw new Error("Erro ao salvar")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erro ao salvar")
       }
     } catch (error) {
+      console.error("Erro ao salvar débito:", error)
       toast({
         title: "Erro",
-        description: "Erro ao salvar débito",
+        description: error instanceof Error ? error.message : "Erro ao salvar débito",
         variant: "destructive",
       })
     } finally {
@@ -151,10 +219,147 @@ export default function DebitosPage() {
     }
   }
 
+  const handleMarcarComoPago = (debito: Debito) => {
+    console.log("Abrindo diálogo de pagamento para débito:", debito)
+    setDebitoParaPagar(debito)
+    setDataBaixa(new Date().toISOString().split("T")[0])
+    setObservacaoBaixa("")
+    setIsPagamentoDialogOpen(true)
+  }
+
+  const handleConfirmarPagamento = async () => {
+    if (!debitoParaPagar) {
+      console.error("Nenhum débito selecionado para pagamento")
+      return
+    }
+
+    if (!dataBaixa) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe a data do pagamento",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Verificar se precisa executar migração
+    if (needsMigration) {
+      console.log("Migração necessária, executando automaticamente...")
+      toast({
+        title: "Preparando sistema",
+        description: "Atualizando banco de dados, aguarde...",
+      })
+
+      const migrationSuccess = await executeMigration()
+
+      if (!migrationSuccess) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar o banco de dados. Tente novamente.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Atualização concluída",
+        description: "Sistema atualizado com sucesso! Processando pagamento...",
+      })
+    }
+
+    console.log("Confirmando pagamento:", {
+      debitoId: debitoParaPagar.id,
+      dataBaixa,
+      observacaoBaixa,
+    })
+
+    setLoadingPagamento(true)
+    try {
+      const response = await fetch(`/api/debitos/${debitoParaPagar.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "marcar_pago",
+          data_baixa: dataBaixa,
+          observacao_baixa: observacaoBaixa || null,
+        }),
+      })
+
+      console.log("Response status:", response.status)
+      const data = await response.json()
+      console.log("Response data:", data)
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso",
+          description: "Débito marcado como pago",
+        })
+        setIsPagamentoDialogOpen(false)
+        setDebitoParaPagar(null)
+        setDataBaixa("")
+        setObservacaoBaixa("")
+        fetchDebitos()
+      } else {
+        throw new Error(data.error || data.details || "Erro ao marcar como pago")
+      }
+    } catch (error) {
+      console.error("Erro ao marcar débito como pago:", error)
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao marcar débito como pago",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingPagamento(false)
+    }
+  }
+
+  const handleMarcarComoPendente = async (debitoId: number) => {
+    if (!confirm("Deseja realmente marcar este débito como pendente novamente?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/debitos/${debitoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "marcar_pendente",
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso",
+          description: "Débito marcado como pendente",
+        })
+        fetchDebitos()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erro ao marcar como pendente")
+      }
+    } catch (error) {
+      console.error("Erro ao marcar débito como pendente:", error)
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao marcar débito como pendente",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleEdit = (debito: Debito) => {
+    if (debito.status === "pago") {
+      toast({
+        title: "Atenção",
+        description: "Não é possível editar um débito já pago. Marque como pendente primeiro.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setEditingDebito(debito)
 
-    // Encontrar os IDs baseados nos nomes
     const cooperado = cooperados.find((c) => c.nome === debito.cooperado_nome)
     const empresa = empresas.find((e) => e.nome === debito.empresa_nome)
 
@@ -171,7 +376,16 @@ export default function DebitosPage() {
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number, status: string) => {
+    if (status === "pago") {
+      toast({
+        title: "Atenção",
+        description: "Não é possível excluir um débito já pago. Marque como pendente primeiro.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!confirm("Tem certeza que deseja excluir este débito?")) {
       return
     }
@@ -188,67 +402,43 @@ export default function DebitosPage() {
         })
         fetchDebitos()
       } else {
-        throw new Error("Erro ao excluir")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erro ao excluir")
       }
     } catch (error) {
+      console.error("Erro ao excluir débito:", error)
       toast({
         title: "Erro",
-        description: "Erro ao excluir débito",
+        description: error instanceof Error ? error.message : "Erro ao excluir débito",
         variant: "destructive",
       })
     }
   }
 
-  const handleGerarRelatorioDebitos = async () => {
-    if (!dataRelatorioInicio || !dataRelatorioFim) {
-      toast({
-        title: "Erro",
-        description: "Preencha as datas para gerar o relatório",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoadingRelatorio(true)
-    try {
-      const response = await fetch(
-        `/api/relatorios/debitos?data_inicio=${dataRelatorioInicio}&data_fim=${dataRelatorioFim}`,
-      )
-      const data = await response.json()
-
-      if (response.ok) {
-        setRelatorioDebitos(data)
-        setShowRelatorio(true)
-        toast({
-          title: "Sucesso",
-          description: "Relatório de débitos gerado com sucesso",
-        })
-      } else {
-        throw new Error(data.error || "Erro ao gerar relatório")
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao gerar relatório de débitos",
-        variant: "destructive",
-      })
-    } finally {
-      setLoadingRelatorio(false)
-    }
-  }
-
-  const handleImprimirRelatorio = () => {
-    window.print()
-  }
-
-  const formatarData = (dataString: string) => {
-    // Se a data já está no formato YYYY-MM-DD, usar diretamente
+  const formatarData = (dataString: string | null) => {
+    if (!dataString) return "-"
     if (dataString.includes("-") && dataString.length === 10) {
       const [ano, mes, dia] = dataString.split("-")
       return `${dia}/${mes}/${ano}`
     }
-    // Caso contrário, tentar converter
     return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+  }
+
+  const getStatusBadge = (status: string) => {
+    if (status === "pago") {
+      return (
+        <Badge variant="default" className="bg-green-600">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Pago
+        </Badge>
+      )
+    }
+    return (
+      <Badge variant="destructive">
+        <Clock className="h-3 w-3 mr-1" />
+        Pendente
+      </Badge>
+    )
   }
 
   // Aplicar filtros
@@ -265,6 +455,16 @@ export default function DebitosPage() {
       debito.empresa_nome.toLowerCase().includes(filtroEmpresa.toLowerCase()),
     )
   }
+
+  if (filtroStatus !== "todos") {
+    debitosFiltrados = debitosFiltrados.filter((debito) => debito.status === filtroStatus)
+  }
+
+  // Calcular estatísticas
+  const totalPendentes = debitos.filter((d) => d.status === "pendente").length
+  const totalPagos = debitos.filter((d) => d.status === "pago").length
+  const valorPendente = debitos.filter((d) => d.status === "pendente").reduce((sum, d) => sum + d.valor, 0)
+  const valorPago = debitos.filter((d) => d.status === "pago").reduce((sum, d) => sum + d.valor, 0)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -284,13 +484,84 @@ export default function DebitosPage() {
 
       <main className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 print:px-8">
         <div className="space-y-6">
+          {needsMigration && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    Atualização de banco de dados necessária para habilitar o controle de pagamentos.
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    A atualização será executada automaticamente quando você marcar um débito como pago.
+                  </p>
+                  <div className="mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-yellow-700 bg-yellow-50 hover:bg-yellow-100 border-yellow-300"
+                      onClick={executeMigration}
+                      disabled={isExecutingMigration}
+                    >
+                      {isExecutingMigration ? "Executando..." : "Executar Atualização Agora"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Pendentes</p>
+                  <p className="text-2xl font-bold text-red-600">{totalPendentes}</p>
+                  <p className="text-xs text-muted-foreground mt-1">R$ {valorPendente.toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Pagos</p>
+                  <p className="text-2xl font-bold text-green-600">{totalPagos}</p>
+                  <p className="text-xs text-muted-foreground mt-1">R$ {valorPago.toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Geral</p>
+                  <p className="text-2xl font-bold text-blue-600">{debitos.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">R$ {(valorPendente + valorPago).toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Taxa Pagamento</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {debitos.length > 0 ? Math.round((totalPagos / debitos.length) * 100) : 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">de {debitos.length} débitos</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Card Principal de Débitos */}
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <CardTitle className="text-lg sm:text-xl">
                   Débitos Cadastrados
-                  {(filtroCooperado !== "todos" || filtroEmpresa !== "todos") && (
+                  {(filtroCooperado !== "todos" || filtroEmpresa !== "todos" || filtroStatus !== "todos") && (
                     <span className="text-sm font-normal text-muted-foreground ml-2 block sm:inline">
                       ({debitosFiltrados.length} de {debitos.length} débitos)
                     </span>
@@ -306,6 +577,11 @@ export default function DebitosPage() {
                   <DialogContent className="max-w-md mx-4">
                     <DialogHeader>
                       <DialogTitle>{editingDebito ? "Editar Débito" : "Novo Débito"}</DialogTitle>
+                      <DialogDescription>
+                        {editingDebito
+                          ? "Atualize as informações do débito existente"
+                          : "Preencha os dados para cadastrar um novo débito"}
+                      </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
@@ -376,7 +652,7 @@ export default function DebitosPage() {
               </div>
 
               {/* Filtros */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                 <div>
                   <Label htmlFor="filtroCooperado">Filtrar por Cooperado</Label>
                   <Select value={filtroCooperado} onValueChange={setFiltroCooperado}>
@@ -409,14 +685,28 @@ export default function DebitosPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="filtroStatus">Filtrar por Status</Label>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      <SelectItem value="pendente">Pendentes</SelectItem>
+                      <SelectItem value="pago">Pagos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="sm:col-span-2 lg:col-span-1">
                   <Button
                     variant="outline"
                     onClick={() => {
                       setFiltroCooperado("todos")
                       setFiltroEmpresa("todos")
+                      setFiltroStatus("todos")
                     }}
-                    disabled={filtroCooperado === "todos" && filtroEmpresa === "todos"}
+                    disabled={filtroCooperado === "todos" && filtroEmpresa === "todos" && filtroStatus === "todos"}
                     className="w-full"
                   >
                     Limpar Filtros
@@ -429,17 +719,20 @@ export default function DebitosPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
                       <TableHead className="min-w-[120px]">Cooperado</TableHead>
                       <TableHead className="min-w-[120px]">Empresa</TableHead>
                       <TableHead className="min-w-[150px]">Descrição</TableHead>
                       <TableHead className="min-w-[100px]">Data</TableHead>
                       <TableHead className="min-w-[100px]">Valor</TableHead>
-                      <TableHead className="min-w-[120px]">Ações</TableHead>
+                      <TableHead className="min-w-[100px]">Data Baixa</TableHead>
+                      <TableHead className="min-w-[180px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {debitosFiltrados.map((debito) => (
                       <TableRow key={debito.id}>
+                        <TableCell>{getStatusBadge(debito.status)}</TableCell>
                         <TableCell className="font-medium">{debito.cooperado_nome}</TableCell>
                         <TableCell>{debito.empresa_nome}</TableCell>
                         <TableCell className="max-w-[200px] truncate" title={debito.descricao}>
@@ -447,14 +740,54 @@ export default function DebitosPage() {
                         </TableCell>
                         <TableCell>{formatarData(debito.data)}</TableCell>
                         <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
+                        <TableCell>{formatarData(debito.data_baixa)}</TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEdit(debito)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDelete(debito.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          <div className="flex gap-2 flex-wrap">
+                            {debito.status === "pendente" ? (
+                              <>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleMarcarComoPago(debito)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                  title="Marcar como pago"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEdit(debito)}
+                                  title="Editar débito"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDelete(debito.id, debito.status)}
+                                  title="Excluir débito"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleMarcarComoPendente(debito.id)}
+                                  title="Marcar como pendente"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                                {debito.observacao_baixa && (
+                                  <Button variant="ghost" size="sm" title={debito.observacao_baixa} className="text-xs">
+                                    Ver obs.
+                                  </Button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -465,218 +798,88 @@ export default function DebitosPage() {
             </CardContent>
           </Card>
 
-          {/* Card de Relatório */}
-          <Card className="print:hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg sm:text-xl">
-                <FileText className="h-5 w-5 mr-2" />
-                Relatório de Débitos por Período
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                <div>
-                  <Label htmlFor="dataRelatorioInicio">Data Início</Label>
-                  <Input
-                    id="dataRelatorioInicio"
-                    type="date"
-                    value={dataRelatorioInicio}
-                    onChange={(e) => setDataRelatorioInicio(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dataRelatorioFim">Data Fim</Label>
-                  <Input
-                    id="dataRelatorioFim"
-                    type="date"
-                    value={dataRelatorioFim}
-                    onChange={(e) => setDataRelatorioFim(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-end">
-                  <Button onClick={handleGerarRelatorioDebitos} disabled={loadingRelatorio} className="w-full">
-                    {loadingRelatorio ? "Gerando..." : "Gerar"}
-                  </Button>
-                </div>
-                {relatorioDebitos && (
-                  <>
-                    <div className="flex items-end">
-                      <Button onClick={handleImprimirRelatorio} variant="outline" className="w-full bg-transparent">
-                        <Download className="h-4 w-4 mr-2" />
-                        Imprimir
-                      </Button>
-                    </div>
-                    <div className="flex items-end">
-                      <Button variant="outline" onClick={() => setShowRelatorio(false)} className="w-full">
-                        Fechar
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {showRelatorio && relatorioDebitos && (
-                <div className="mt-6">
-                  {/* Versão para tela */}
-                  <div className="print:hidden">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                      <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Total de Débitos</p>
-                        <p className="text-lg sm:text-2xl font-bold text-red-600">{relatorioDebitos.total_debitos}</p>
-                      </div>
-                      <div className="text-center p-4 bg-orange-50 rounded-lg">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Cooperados</p>
-                        <p className="text-lg sm:text-2xl font-bold text-orange-600">
-                          {relatorioDebitos.total_cooperados}
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Empresas</p>
-                        <p className="text-lg sm:text-2xl font-bold text-purple-600">
-                          {relatorioDebitos.total_empresas}
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg">
-                        <p className="text-xs sm:text-sm text-muted-foreground">Valor Total</p>
-                        <p className="text-lg sm:text-2xl font-bold text-gray-600">
-                          R$ {relatorioDebitos.valor_total.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[100px]">Data</TableHead>
-                            <TableHead className="min-w-[120px]">Cooperado</TableHead>
-                            <TableHead className="min-w-[120px]">Empresa</TableHead>
-                            <TableHead className="min-w-[150px]">Descrição</TableHead>
-                            <TableHead className="min-w-[100px]">Valor</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {relatorioDebitos.debitos.map((debito: any, index: number) => (
-                            <TableRow key={index}>
-                              <TableCell>{formatarData(debito.data)}</TableCell>
-                              <TableCell>{debito.cooperado_nome}</TableCell>
-                              <TableCell>{debito.empresa_nome}</TableCell>
-                              <TableCell className="max-w-[200px] truncate" title={debito.descricao}>
-                                {debito.descricao}
-                              </TableCell>
-                              <TableCell>R$ {Number(debito.valor).toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+          {/* Dialog de Pagamento */}
+          <Dialog open={isPagamentoDialogOpen} onOpenChange={setIsPagamentoDialogOpen}>
+            <DialogContent className="max-w-md mx-4">
+              <DialogHeader>
+                <DialogTitle>Marcar Débito como Pago</DialogTitle>
+                <DialogDescription>
+                  Registre o pagamento do débito informando a data e observações se necessário
+                </DialogDescription>
+              </DialogHeader>
+              {debitoParaPagar && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <p className="text-sm">
+                      <strong>Cooperado:</strong> {debitoParaPagar.cooperado_nome}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Empresa:</strong> {debitoParaPagar.empresa_nome}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Descrição:</strong> {debitoParaPagar.descricao}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Valor:</strong> R$ {debitoParaPagar.valor.toFixed(2)}
+                    </p>
                   </div>
 
-                  {/* Versão para impressão */}
-                  <div className="hidden print:block print:text-black">
-                    <div className="text-center mb-5">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1 pr-4">
-                          <h1 className="text-lg font-bold mb-2">
-                            COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
-                          </h1>
-                          <div className="text-sm space-y-1">
-                            <p>CNPJ: 05.332.862/0001-35</p>
-                            <p>AVENIDA DOUTOR JOSÉ NEVES, 415</p>
-                            <p>RIO POMBA - MG 36180-000</p>
-                          </div>
-                        </div>
-                        <div className="w-32 h-20 flex-shrink-0">
-                          <img
-                            src="/logo-coopervetra.jpg"
-                            alt="Logo COOPERVETRA"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="border-t-2 border-b-2 border-black py-2 my-4">
-                        <h2 className="text-xl font-bold">RELATÓRIO DE DÉBITOS</h2>
-                        <p className="text-sm">
-                          Período: {formatarData(dataRelatorioInicio)} a {formatarData(dataRelatorioFim)}
-                        </p>
-                      </div>
+                  {needsMigration && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        ℹ️ O sistema será atualizado automaticamente ao confirmar este pagamento.
+                      </p>
                     </div>
+                  )}
 
-                    {/* Resumo */}
-                    <div className="grid grid-cols-4 gap-4 mb-6 text-center">
-                      <div className="border border-black p-2">
-                        <p className="text-xs font-bold">TOTAL DÉBITOS</p>
-                        <p className="text-lg font-bold">{relatorioDebitos.total_debitos}</p>
-                      </div>
-                      <div className="border border-black p-2">
-                        <p className="text-xs font-bold">COOPERADOS</p>
-                        <p className="text-lg font-bold">{relatorioDebitos.total_cooperados}</p>
-                      </div>
-                      <div className="border border-black p-2">
-                        <p className="text-xs font-bold">EMPRESAS</p>
-                        <p className="text-lg font-bold">{relatorioDebitos.total_empresas}</p>
-                      </div>
-                      <div className="border border-black p-2">
-                        <p className="text-xs font-bold">VALOR TOTAL</p>
-                        <p className="text-lg font-bold">R$ {relatorioDebitos.valor_total.toFixed(2)}</p>
-                      </div>
-                    </div>
+                  <div>
+                    <Label htmlFor="dataBaixa">Data do Pagamento *</Label>
+                    <Input
+                      id="dataBaixa"
+                      type="date"
+                      value={dataBaixa}
+                      onChange={(e) => setDataBaixa(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                    {/* Tabela de Débitos */}
-                    <div className="mb-6">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="border-2 border-black">
-                            <th className="border border-black p-1 font-bold">DATA</th>
-                            <th className="border border-black p-1 font-bold">COOPERADO</th>
-                            <th className="border border-black p-1 font-bold">EMPRESA</th>
-                            <th className="border border-black p-1 font-bold">DESCRIÇÃO</th>
-                            <th className="border border-black p-1 font-bold">VALOR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {relatorioDebitos.debitos.map((debito: any, index: number) => (
-                            <tr key={index}>
-                              <td className="border border-black p-1">{formatarData(debito.data)}</td>
-                              <td className="border border-black p-1">{debito.cooperado_nome}</td>
-                              <td className="border border-black p-1">{debito.empresa_nome}</td>
-                              <td className="border border-black p-1">{debito.descricao}</td>
-                              <td className="border border-black p-1 text-right">
-                                R$ {Number(debito.valor).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="bg-gray-200 font-bold">
-                            <td className="border-2 border-black p-1" colSpan={4}>
-                              TOTAL GERAL
-                            </td>
-                            <td className="border-2 border-black p-1 text-right">
-                              R$ {relatorioDebitos.valor_total.toFixed(2)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                  <div>
+                    <Label htmlFor="observacaoBaixa">Observações (Opcional)</Label>
+                    <Textarea
+                      id="observacaoBaixa"
+                      value={observacaoBaixa}
+                      onChange={(e) => setObservacaoBaixa(e.target.value)}
+                      placeholder="Ex: Pago via PIX, Comprovante nº 12345"
+                      rows={3}
+                    />
+                  </div>
 
-                    {/* Assinaturas */}
-                    <div className="mt-12 pt-6">
-                      <div className="grid grid-cols-2 gap-16">
-                        <div className="text-center">
-                          <div className="border-t border-black mb-2"></div>
-                          <p className="text-sm">RESPONSÁVEL FINANCEIRO</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="border-t border-black mb-2"></div>
-                          <p className="text-sm">FILIPE BENTO COSTA (PRESIDENTE)</p>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleConfirmarPagamento}
+                      disabled={loadingPagamento || isExecutingMigration || !dataBaixa}
+                      className="flex-1"
+                    >
+                      {loadingPagamento || isExecutingMigration ? "Processando..." : "Confirmar Pagamento"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsPagamentoDialogOpen(false)
+                        setDebitoParaPagar(null)
+                        setDataBaixa("")
+                        setObservacaoBaixa("")
+                      }}
+                      disabled={loadingPagamento || isExecutingMigration}
+                    >
+                      Cancelar
+                    </Button>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>

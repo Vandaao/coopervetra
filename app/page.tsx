@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Truck, Users, Building2, Receipt, FileText, DollarSign } from "lucide-react"
+import { Truck, Users, Building2, Receipt, FileText, DollarSign, Database } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
 import { UserInfo } from "@/components/user-info"
 
@@ -129,6 +129,21 @@ export default function HomePage() {
               <CardContent>
                 <Link href="/folha-pagamento">
                   <Button className="w-full">Folha de Pagamento</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="h-5 w-5 mr-2 text-cyan-600" />
+                  Backup de Dados
+                </CardTitle>
+                <CardDescription>Faça backup local de todos os dados do sistema</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/backup">
+                  <Button className="w-full">Backup de Dados</Button>
                 </Link>
               </CardContent>
             </Card>
