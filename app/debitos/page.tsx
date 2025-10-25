@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -55,6 +55,7 @@ export default function DebitosPage() {
   const [data, setData] = useState("")
   const [valor, setValor] = useState("")
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [filtroCooperado, setFiltroCooperado] = useState("todos")
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
@@ -74,6 +75,10 @@ export default function DebitosPage() {
     try {
       const response = await fetch("/api/admin/executar-migracao", {
         method: "POST",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
       })
 
       const data = await response.json()
@@ -103,7 +108,13 @@ export default function DebitosPage() {
 
   const checkMigrationStatus = async () => {
     try {
-      const response = await fetch("/api/debitos")
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/debitos?_t=${timestamp}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
       const data = await response.json()
 
       // Check if any debito has the status property
@@ -130,13 +141,20 @@ export default function DebitosPage() {
 
   const fetchDebitos = async () => {
     try {
-      const response = await fetch("/api/debitos")
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/debitos?_t=${timestamp}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
       const data = await response.json()
       const debitosFormatados = data.map((debito: any) => ({
         ...debito,
         valor: Number(debito.valor),
       }))
       setDebitos(debitosFormatados)
+      console.log("Débitos carregados:", debitosFormatados.length)
     } catch (error) {
       toast({
         title: "Erro",
@@ -148,7 +166,13 @@ export default function DebitosPage() {
 
   const fetchCooperados = async () => {
     try {
-      const response = await fetch("/api/cooperados")
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/cooperados?_t=${timestamp}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
       const data = await response.json()
       setCooperados(data)
     } catch (error) {
@@ -158,11 +182,36 @@ export default function DebitosPage() {
 
   const fetchEmpresas = async () => {
     try {
-      const response = await fetch("/api/empresas")
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/empresas?_t=${timestamp}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
       const data = await response.json()
       setEmpresas(data)
     } catch (error) {
       console.error("Erro ao carregar empresas:", error)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await Promise.all([fetchDebitos(), fetchCooperados(), fetchEmpresas(), checkMigrationStatus()])
+      toast({
+        title: "Atualizado",
+        description: "Dados atualizados com sucesso",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar dados",
+        variant: "destructive",
+      })
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -185,7 +234,11 @@ export default function DebitosPage() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
         body: JSON.stringify({
           cooperado_id: Number.parseInt(cooperadoId),
           empresa_id: Number.parseInt(empresaId),
@@ -202,7 +255,9 @@ export default function DebitosPage() {
         })
         resetForm()
         setIsDialogOpen(false)
-        fetchDebitos()
+        // Aguardar um pouco e recarregar
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await fetchDebitos()
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || "Erro ao salvar")
@@ -277,7 +332,11 @@ export default function DebitosPage() {
     try {
       const response = await fetch(`/api/debitos/${debitoParaPagar.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
         body: JSON.stringify({
           action: "marcar_pago",
           data_baixa: dataBaixa,
@@ -298,7 +357,9 @@ export default function DebitosPage() {
         setDebitoParaPagar(null)
         setDataBaixa("")
         setObservacaoBaixa("")
-        fetchDebitos()
+        // Aguardar um pouco e recarregar
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await fetchDebitos()
       } else {
         throw new Error(data.error || data.details || "Erro ao marcar como pago")
       }
@@ -322,7 +383,11 @@ export default function DebitosPage() {
     try {
       const response = await fetch(`/api/debitos/${debitoId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
         body: JSON.stringify({
           action: "marcar_pendente",
         }),
@@ -333,7 +398,8 @@ export default function DebitosPage() {
           title: "Sucesso",
           description: "Débito marcado como pendente",
         })
-        fetchDebitos()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await fetchDebitos()
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || "Erro ao marcar como pendente")
@@ -393,6 +459,10 @@ export default function DebitosPage() {
     try {
       const response = await fetch(`/api/debitos/${id}`, {
         method: "DELETE",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
       })
 
       if (response.ok) {
@@ -400,7 +470,8 @@ export default function DebitosPage() {
           title: "Sucesso",
           description: "Débito excluído com sucesso",
         })
-        fetchDebitos()
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        await fetchDebitos()
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || "Erro ao excluir")
@@ -470,14 +541,20 @@ export default function DebitosPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b print:hidden">
         <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center py-6">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="mr-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gerenciar Débitos</h1>
+          <div className="flex items-center justify-between py-6">
+            <div className="flex items-center">
+              <Link href="/">
+                <Button variant="ghost" size="sm" className="mr-4">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+                </Button>
+              </Link>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gerenciar Débitos</h1>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Atualizando..." : "Atualizar"}
+            </Button>
           </div>
         </div>
       </header>
