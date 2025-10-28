@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+export const fetchCache = "force-no-store"
+
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
