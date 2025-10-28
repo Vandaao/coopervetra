@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Download, Building2 } from "lucide-react"
+import { ArrowLeft, Download, Building2, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AuthGuard } from "@/components/auth-guard"
 import { PDFGeneratorEmpresa } from "@/components/pdf-generator-empresa"
@@ -63,6 +63,7 @@ export default function RelatoriosEmpresaPage() {
   const [dataFim, setDataFim] = useState("")
   const [relatorio, setRelatorio] = useState<RelatorioEmpresaData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -91,13 +92,21 @@ export default function RelatoriosEmpresaPage() {
 
     setLoading(true)
     try {
+      const timestamp = new Date().getTime()
       const response = await fetch(
-        `/api/relatorios/empresa?empresa_id=${empresaId}&data_inicio=${dataInicio}&data_fim=${dataFim}`,
+        `/api/relatorios/empresa?empresa_id=${empresaId}&data_inicio=${dataInicio}&data_fim=${dataFim}&_t=${timestamp}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        },
       )
       const data = await response.json()
 
       if (response.ok) {
         setRelatorio(data)
+        console.log("[v0] Relatório carregado com sucesso")
         toast({
           title: "Sucesso",
           description: "Relatório gerado com sucesso",
@@ -113,6 +122,42 @@ export default function RelatoriosEmpresaPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    if (!empresaId || !dataInicio || !dataFim) return
+
+    setRefreshing(true)
+    try {
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/relatorios/empresa?empresa_id=${empresaId}&data_inicio=${dataInicio}&data_fim=${dataFim}&_t=${timestamp}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        },
+      )
+      const data = await response.json()
+
+      if (response.ok) {
+        setRelatorio(data)
+        console.log("[v0] Relatório atualizado com sucesso")
+        toast({
+          title: "Atualizado",
+          description: "Dados atualizados com sucesso",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar dados",
+        variant: "destructive",
+      })
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -141,6 +186,18 @@ export default function RelatoriosEmpresaPage() {
                 </Button>
               </Link>
               <h1 className="text-2xl font-bold text-gray-900">Relatórios por Empresa</h1>
+              {relatorio && (
+                <Button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto bg-transparent"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                  {refreshing ? "Atualizando..." : "Atualizar"}
+                </Button>
+              )}
             </div>
           </div>
         </header>

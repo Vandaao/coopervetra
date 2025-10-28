@@ -149,6 +149,9 @@ export default function HomePage() {
             </Card>
           </div>
         </main>
+        <footer className="bg-white text-black text-center py-3 mt-auto">
+            Grupo Modelo - Excelência que inspira confiança
+        </footer>
       </div>
     </AuthGuard>
   )

@@ -121,7 +121,7 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
       document.body.appendChild(pdfContent)
 
       const canvas = await html2canvas(pdfContent, {
-        scale: 2,
+        scale: 1.2, // Reduzido de 2 para 1.2 para diminuir tamanho
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -129,8 +129,14 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
 
       document.body.removeChild(pdfContent)
 
-      const pdf = new jsPDF("p", "mm", "a4")
-      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+        compress: true, // Ativa compressão do PDF
+      })
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.85)
 
       const imgWidth = 210
       const pageHeight = 295
@@ -139,13 +145,13 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
 
       let position = 0
 
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST")
       heightLeft -= pageHeight
 
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST")
         heightLeft -= pageHeight
       }
 

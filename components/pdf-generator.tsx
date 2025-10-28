@@ -234,7 +234,7 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
 
       // Gerar canvas
       const canvas = await html2canvas(pdfContent, {
-        scale: 2,
+        scale: 1.2, // Reduzido de 2 para 1.2 para diminuir tamanho
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -244,8 +244,14 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       document.body.removeChild(pdfContent)
 
       // Criar PDF
-      const pdf = new jsPDF("p", "mm", "a4")
-      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+        compress: true, // Ativa compressão do PDF
+      })
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.85)
 
       const imgWidth = 210 // A4 width in mm
       const pageHeight = 295 // A4 height in mm
@@ -255,14 +261,14 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       let position = 0
 
       // Adicionar primeira página
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST")
       heightLeft -= pageHeight
 
       // Adicionar páginas adicionais se necessário
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, "FAST")
         heightLeft -= pageHeight
       }
 
