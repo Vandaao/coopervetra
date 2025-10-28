@@ -9,12 +9,12 @@ export default function HomePage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-blue-600 text-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div className="flex items-center">
-                <Truck className="h-8 w-8 text-blue-600 mr-3" />
-                <h1 className="text-2xl font-bold text-gray-900">Coopervetra - Sistema Gerenciador de Fretes</h1>
+                <Truck className="h-8 w-8 text-white mr-3" />
+                <h1 className="text-2xl font-bold text-white">Coopervetra - Sistema Gerenciador de Fretes</h1>
               </div>
               <UserInfo />
             </div>
