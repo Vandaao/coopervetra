@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -450,7 +451,7 @@ export default function FretesPage() {
         const result = await response.json()
         toast({
           title: "Sucesso",
-          description: `${result.count} frete(s) marcado(s) como pago`,
+          description: `${result.count} frete(s) marcado(s) como pago(s)`,
         })
         setIsPagamentoLoteDialogOpen(false)
         setFretesSelecionados([])
@@ -684,99 +685,103 @@ export default function FretesPage() {
         </Card>
       </main>
 
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        {isDialogOpen && (
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">{editingFrete ? "Editar Frete" : "Novo Frete"}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="cooperado">Cooperado</Label>
-                <select
-                  id="cooperado"
-                  value={cooperadoId}
-                  onChange={(e) => setCooperadoId(e.target.value)}
-                  required
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Selecione o cooperado</option>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle>{editingFrete ? "Editar Frete" : "Novo Frete"}</DialogTitle>
+            <DialogDescription>
+              {editingFrete
+                ? "Atualize as informações do frete existente"
+                : "Preencha os dados para cadastrar um novo frete"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="cooperado">Cooperado</Label>
+              <Select value={cooperadoId} onValueChange={setCooperadoId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cooperado" />
+                </SelectTrigger>
+                <SelectContent>
                   {cooperados.map((cooperado) => (
-                    <option key={cooperado.id} value={cooperado.id.toString()}>
+                    <SelectItem key={cooperado.id} value={cooperado.id.toString()}>
                       {cooperado.nome}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="empresa">Empresa</Label>
-                <select
-                  id="empresa"
-                  value={empresaId}
-                  onChange={(e) => setEmpresaId(e.target.value)}
-                  required
-                  className="border p-2 rounded w-full"
-                >
-                  <option value="">Selecione a empresa</option>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="empresa">Empresa</Label>
+              <Select value={empresaId} onValueChange={setEmpresaId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
                   {empresas.map((empresa) => (
-                    <option key={empresa.id} value={empresa.id.toString()}>
+                    <SelectItem key={empresa.id} value={empresa.id.toString()}>
                       {empresa.nome}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="carga">Carga</Label>
-                <Input id="carga" value={carga} onChange={(e) => setCarga(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="km">KM</Label>
-                <Input id="km" type="number" value={km} onChange={(e) => setKm(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="valor">Valor (R$)</Label>
-                <Input
-                  id="valor"
-                  type="number"
-                  step="0.01"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="chapada">Chapada (R$)</Label>
-                <Input
-                  id="chapada"
-                  type="number"
-                  step="0.01"
-                  value={chapada}
-                  onChange={(e) => setChapada(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="data">Data</Label>
-                <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? "Salvando..." : editingFrete ? "Atualizar" : "Cadastrar"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="carga">Carga</Label>
+              <Input id="carga" value={carga} onChange={(e) => setCarga(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="km">KM</Label>
+              <Input id="km" type="number" value={km} onChange={(e) => setKm(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="valor">Valor (R$)</Label>
+              <Input
+                id="valor"
+                type="number"
+                step="0.01"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="chapada">Chapada (R$)</Label>
+              <Input
+                id="chapada"
+                type="number"
+                step="0.01"
+                value={chapada}
+                onChange={(e) => setChapada(e.target.value)}
+                placeholder="0.00"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="data">Data</Label>
+              <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? "Salvando..." : editingFrete ? "Atualizar" : "Cadastrar"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        {isPagamentoDialogOpen && (
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Marcar Frete como Pago</h2>
-            {freteParaPagar && (
-              <div className="bg-muted p-4 rounded-lg space-y-2 mb-4">
+      <Dialog open={isPagamentoDialogOpen} onOpenChange={setIsPagamentoDialogOpen}>
+        <DialogContent className="max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle>Marcar Frete como Pago</DialogTitle>
+            <DialogDescription>Registre o pagamento do frete informando a data</DialogDescription>
+          </DialogHeader>
+          {freteParaPagar && (
+            <div className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg space-y-2">
                 <p className="text-sm">
                   <span className="font-semibold">Cooperado:</span> {freteParaPagar.cooperado_nome}
                 </p>
@@ -790,42 +795,45 @@ export default function FretesPage() {
                   <span className="font-semibold">Valor:</span> R$ {Number(freteParaPagar.valor).toFixed(2)}
                 </p>
               </div>
-            )}
-            <div>
-              <Label htmlFor="dataPagamento">Data do Pagamento *</Label>
-              <Input
-                id="dataPagamento"
-                type="date"
-                value={dataPagamento}
-                onChange={(e) => setDataPagamento(e.target.value)}
-                required
-              />
+              <div>
+                <Label htmlFor="dataPagamento">Data do Pagamento *</Label>
+                <Input
+                  id="dataPagamento"
+                  type="date"
+                  value={dataPagamento}
+                  onChange={(e) => setDataPagamento(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleConfirmarPagamento} disabled={loading || !dataPagamento} className="flex-1">
+                  {loading ? "Processando..." : "Confirmar Pagamento"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsPagamentoDialogOpen(false)
+                    setFreteParaPagar(null)
+                    setDataPagamento("")
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleConfirmarPagamento} disabled={loading || !dataPagamento} className="flex-1">
-                {loading ? "Processando..." : "Confirmar Pagamento"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsPagamentoDialogOpen(false)
-                  setFreteParaPagar(null)
-                  setDataPagamento("")
-                }}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        {isPagamentoLoteDialogOpen && (
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Marcar Fretes como Pagos</h2>
-            <div className="bg-muted p-4 rounded-lg mb-4">
+      <Dialog open={isPagamentoLoteDialogOpen} onOpenChange={setIsPagamentoLoteDialogOpen}>
+        <DialogContent className="max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle>Marcar Fretes como Pagos</DialogTitle>
+            <DialogDescription>Registre o pagamento de múltiplos fretes de uma vez</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
               <p className="text-sm font-semibold mb-2">
                 Você está prestes a marcar {fretesSelecionados.length} frete(s) como pago(s):
               </p>
@@ -877,8 +885,8 @@ export default function FretesPage() {
               </Button>
             </div>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
