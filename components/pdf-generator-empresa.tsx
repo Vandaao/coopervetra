@@ -65,6 +65,17 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
     try {
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")])
 
+      const totalGeralKm = relatorio.cooperados.reduce((sum, c) => sum + c.fretes.reduce((s, f) => s + f.km, 0), 0)
+      const totalGeralValor = relatorio.cooperados.reduce(
+        (sum, c) => sum + c.fretes.reduce((s, f) => s + f.valor, 0),
+        0,
+      )
+      const totalGeralChapada = relatorio.cooperados.reduce(
+        (sum, c) => sum + c.fretes.reduce((s, f) => s + f.chapada, 0),
+        0,
+      )
+      const totalGeralFinal = totalGeralValor + totalGeralChapada
+
       const pdfContent = document.createElement("div")
       pdfContent.style.width = "210mm"
       pdfContent.style.minHeight = "297mm"
@@ -160,6 +171,79 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
           </table>
         </div>
 
+        <!-- Detalhamento de fretes por cooperado com somatórias -->
+        ${relatorio.cooperados
+          .map((cooperado) => {
+            // Calcular subtotais do cooperado
+            const subtotalKm = cooperado.fretes.reduce((sum, f) => sum + f.km, 0)
+            const subtotalValor = cooperado.fretes.reduce((sum, f) => sum + f.valor, 0)
+            const subtotalChapada = cooperado.fretes.reduce((sum, f) => sum + f.chapada, 0)
+            const subtotalFinal = subtotalValor + subtotalChapada
+
+            return `
+          <div style="margin-bottom: 30px; page-break-inside: avoid;">
+            <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 10px; background-color: #f0f0f0; padding: 8px; border-left: 4px solid #333;">
+              DETALHAMENTO DE FRETES - ${cooperado.cooperado_nome}
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 15px;">
+              <thead>
+                <tr style="background-color: #e0e0e0;">
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold;">DATA</th>
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold;">CARGA</th>
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold; text-align: center;">KM</th>
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold; text-align: right;">VALOR</th>
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold; text-align: right;">CHAPADA</th>
+                  <th style="border: 1px solid black; padding: 4px; font-weight: bold; text-align: right;">VALOR FINAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cooperado.fretes
+                  .map(
+                    (frete) => `
+                  <tr>
+                    <td style="border: 1px solid black; padding: 3px; text-align: center;">${formatarData(frete.data)}</td>
+                    <td style="border: 1px solid black; padding: 3px;">${frete.carga}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align: center;">${frete.km}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align: right;">R$ ${frete.valor.toFixed(2)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align: right;">R$ ${frete.chapada.toFixed(2)}</td>
+                    <td style="border: 1px solid black; padding: 3px; text-align: right; font-weight: bold;">R$ ${(frete.valor + frete.chapada).toFixed(2)}</td>
+                  </tr>
+                `,
+                  )
+                  .join("")}
+                <tr style="background-color: #d4edda; font-weight: bold; border-top: 2px solid black;">
+                  <td colspan="2" style="border: 2px solid black; padding: 4px; text-align: right;">SUBTOTAL ${cooperado.cooperado_nome.split(" ")[0]}:</td>
+                  <td style="border: 2px solid black; padding: 4px; text-align: center;">${subtotalKm}</td>
+                  <td style="border: 2px solid black; padding: 4px; text-align: right;">R$ ${subtotalValor.toFixed(2)}</td>
+                  <td style="border: 2px solid black; padding: 4px; text-align: right;">R$ ${subtotalChapada.toFixed(2)}</td>
+                  <td style="border: 2px solid black; padding: 4px; text-align: right;">R$ ${subtotalFinal.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `
+          })
+          .join("")}
+
+        <!-- Totais gerais de todos os fretes detalhados -->
+        <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border: 2px solid #333;">
+          <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">TOTAIS GERAIS DE TODOS OS FRETES</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <tr>
+              <td style="padding: 5px;"><strong>Total de KM:</strong></td>
+              <td style="padding: 5px; text-align: right;"><strong>${totalGeralKm}</strong></td>
+              <td style="padding: 5px;"><strong>Total Valor:</strong></td>
+              <td style="padding: 5px; text-align: right;"><strong>R$ ${totalGeralValor.toFixed(2)}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 5px;"><strong>Total Chapada:</strong></td>
+              <td style="padding: 5px; text-align: right;"><strong>R$ ${totalGeralChapada.toFixed(2)}</strong></td>
+              <td style="padding: 5px;"><strong>Valor Final Total:</strong></td>
+              <td style="padding: 5px; text-align: right; font-size: 14px; color: #006400;"><strong>R$ ${totalGeralFinal.toFixed(2)}</strong></td>
+            </tr>
+          </table>
+        </div>
+
         <div style="margin-top: 60px;">
           <div style="display: flex; justify-content: space-between;">
             <div style="text-align: center; width: 45%;">
@@ -177,7 +261,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
       document.body.appendChild(pdfContent)
 
       const canvas = await html2canvas(pdfContent, {
-        scale: 1.2, // Reduzido de 2 para 1.2 para diminuir tamanho
+        scale: 1.2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -189,7 +273,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
         orientation: "p",
         unit: "mm",
         format: "a4",
-        compress: true, // Ativa compressão do PDF
+        compress: true,
       })
 
       const imgData = canvas.toDataURL("image/jpeg", 0.85)

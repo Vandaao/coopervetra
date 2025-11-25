@@ -60,6 +60,13 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
       // Importações dinâmicas para evitar problemas de SSR
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")])
 
+      const totalKmFretes = relatorio.fretes.reduce((sum, f) => sum + f.km, 0)
+      const totalValorFretes = relatorio.fretes.reduce((sum, f) => sum + f.valor, 0)
+      const totalChapadaFretes = relatorio.fretes.reduce((sum, f) => sum + f.chapada, 0)
+      const totalFinalFretes = totalValorFretes + totalChapadaFretes
+
+      const totalValorDebitos = relatorio.debitos.reduce((sum, d) => sum + d.valor, 0)
+
       // Criar conteúdo HTML para o PDF
       const pdfContent = document.createElement("div")
       pdfContent.style.width = "210mm"
@@ -95,15 +102,17 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
           <p style="font-size: 14px; font-weight: bold;">NOME: ${relatorio.cooperado_nome}</p>
         </div>
 
+        <!-- Tabela de fretes com coluna VALOR FINAL e linha de TOTAIS -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           <thead>
-            <tr style="border-bottom: 2px solid black;">
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">Data</th>
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">CARGA</th>
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">KM</th>
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">VALOR</th>
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">CHAPADA</th>
-              <th style="text-align: left; padding: 8px 4px; font-weight: bold;">EMPRESA</th>
+            <tr style="border-bottom: 2px solid black; background-color: #f0f0f0;">
+              <th style="text-align: left; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">Data</th>
+              <th style="text-align: left; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">CARGA</th>
+              <th style="text-align: center; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">KM</th>
+              <th style="text-align: right; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">VALOR</th>
+              <th style="text-align: right; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">CHAPADA</th>
+              <th style="text-align: right; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">VALOR FINAL</th>
+              <th style="text-align: left; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">EMPRESA</th>
             </tr>
           </thead>
           <tbody>
@@ -111,30 +120,26 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
               .map(
                 (frete) => `
               <tr style="border-bottom: 1px solid #ccc;">
-                <td style="padding: 8px 4px;">${formatarData(frete.data)}</td>
-                <td style="padding: 8px 4px;">${frete.carga}</td>
-                <td style="padding: 8px 4px;">${frete.km}</td>
-                <td style="padding: 8px 4px;">R$ ${frete.valor.toFixed(2)}</td>
-                <td style="padding: 8px 4px;">R$ ${frete.chapada.toFixed(2)}</td>
-                <td style="padding: 8px 4px;">${frete.empresa_nome}</td>
+                <td style="padding: 8px 4px; border: 1px solid #ddd;">${formatarData(frete.data)}</td>
+                <td style="padding: 8px 4px; border: 1px solid #ddd;">${frete.carga}</td>
+                <td style="padding: 8px 4px; text-align: center; border: 1px solid #ddd;">${frete.km}</td>
+                <td style="padding: 8px 4px; text-align: right; border: 1px solid #ddd;">R$ ${frete.valor.toFixed(2)}</td>
+                <td style="padding: 8px 4px; text-align: right; border: 1px solid #ddd;">R$ ${frete.chapada.toFixed(2)}</td>
+                <td style="padding: 8px 4px; text-align: right; border: 1px solid #ddd; font-weight: bold;">R$ ${(frete.valor + frete.chapada).toFixed(2)}</td>
+                <td style="padding: 8px 4px; border: 1px solid #ddd;">${frete.empresa_nome}</td>
               </tr>
             `,
               )
               .join("")}
-            ${Array.from({ length: Math.max(0, 6 - relatorio.fretes.length) })
-              .map(
-                () => `
-              <tr style="border-bottom: 1px solid #ccc;">
-                <td style="padding: 8px 4px;">&nbsp;</td>
-                <td style="padding: 8px 4px;">&nbsp;</td>
-                <td style="padding: 8px 4px;">&nbsp;</td>
-                <td style="padding: 8px 4px;">&nbsp;</td>
-                <td style="padding: 8px 4px;">&nbsp;</td>
-                <td style="padding: 8px 4px;">&nbsp;</td>
-              </tr>
-            `,
-              )
-              .join("")}
+            <!-- Linha de totais dos fretes -->
+            <tr style="background-color: #e8e8e8; font-weight: bold; border-top: 2px solid black;">
+              <td colspan="2" style="padding: 8px 4px; text-align: right; border: 1px solid #999;">TOTAIS:</td>
+              <td style="padding: 8px 4px; text-align: center; border: 1px solid #999;">${totalKmFretes}</td>
+              <td style="padding: 8px 4px; text-align: right; border: 1px solid #999;">R$ ${totalValorFretes.toFixed(2)}</td>
+              <td style="padding: 8px 4px; text-align: right; border: 1px solid #999;">R$ ${totalChapadaFretes.toFixed(2)}</td>
+              <td style="padding: 8px 4px; text-align: right; border: 1px solid #999;">R$ ${totalFinalFretes.toFixed(2)}</td>
+              <td style="padding: 8px 4px; border: 1px solid #999;"></td>
+            </tr>
           </tbody>
         </table>
 
@@ -143,12 +148,13 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
             ? `
         <div style="margin-bottom: 20px;">
           <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 15px;">DÉBITOS NO PERÍODO</h3>
+          <!-- Tabela de débitos com linha de TOTAIS -->
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
-              <tr style="border-bottom: 2px solid black;">
-                <th style="text-align: left; padding: 8px 4px; font-weight: bold;">Data</th>
-                <th style="text-align: left; padding: 8px 4px; font-weight: bold;">DESCRIÇÃO</th>
-                <th style="text-align: left; padding: 8px 4px; font-weight: bold;">VALOR</th>
+              <tr style="border-bottom: 2px solid black; background-color: #f0f0f0;">
+                <th style="text-align: left; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">Data</th>
+                <th style="text-align: left; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">DESCRIÇÃO</th>
+                <th style="text-align: right; padding: 8px 4px; font-weight: bold; border: 1px solid #999;">VALOR</th>
               </tr>
             </thead>
             <tbody>
@@ -156,24 +162,18 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
                 .map(
                   (debito) => `
                 <tr style="border-bottom: 1px solid #ccc;">
-                  <td style="padding: 8px 4px;">${formatarData(debito.data)}</td>
-                  <td style="padding: 8px 4px;">${debito.descricao}</td>
-                  <td style="padding: 8px 4px;">R$ ${debito.valor.toFixed(2)}</td>
+                  <td style="padding: 8px 4px; border: 1px solid #ddd;">${formatarData(debito.data)}</td>
+                  <td style="padding: 8px 4px; border: 1px solid #ddd;">${debito.descricao}</td>
+                  <td style="padding: 8px 4px; text-align: right; border: 1px solid #ddd;">R$ ${debito.valor.toFixed(2)}</td>
                 </tr>
               `,
                 )
                 .join("")}
-              ${Array.from({ length: Math.max(0, 3 - relatorio.debitos.length) })
-                .map(
-                  () => `
-                <tr style="border-bottom: 1px solid #ccc;">
-                  <td style="padding: 8px 4px;">&nbsp;</td>
-                  <td style="padding: 8px 4px;">&nbsp;</td>
-                  <td style="padding: 8px 4px;">&nbsp;</td>
-                </tr>
-              `,
-                )
-                .join("")}
+              <!-- Linha de total dos débitos -->
+              <tr style="background-color: #e8e8e8; font-weight: bold; border-top: 2px solid black;">
+                <td colspan="2" style="padding: 8px 4px; text-align: right; border: 1px solid #999;">TOTAL DÉBITOS:</td>
+                <td style="padding: 8px 4px; text-align: right; border: 1px solid #999;">R$ ${totalValorDebitos.toFixed(2)}</td>
+              </tr>
             </tbody>
           </table>
         </div>
