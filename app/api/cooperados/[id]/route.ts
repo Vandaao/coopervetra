@@ -6,13 +6,13 @@ const sql = neon(process.env.DATABASE_URL!)
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = Number.parseInt(params.id)
-    const { nome, cpf, placa, conta_bancaria } = await request.json()
+    const { nome, cpf, placa, conta_bancaria, ativo } = await request.json()
 
     const result = await sql`
       UPDATE cooperados 
-      SET nome = ${nome}, cpf = ${cpf}, placa = ${placa}, conta_bancaria = ${conta_bancaria || null}
+      SET nome = ${nome}, cpf = ${cpf}, placa = ${placa}, conta_bancaria = ${conta_bancaria || null}, ativo = ${ativo !== undefined ? ativo : true}
       WHERE id = ${id}
-      RETURNING id, nome, cpf, placa, conta_bancaria
+      RETURNING id, nome, cpf, placa, conta_bancaria, ativo
     `
 
     if (result.length === 0) {

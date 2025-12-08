@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Plus, Trash2, Edit, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AuthGuard } from "@/components/auth-guard"
 
@@ -21,6 +23,7 @@ interface Cooperado {
   cpf: string
   placa: string
   conta_bancaria: string
+  ativo: boolean
 }
 
 export default function CooperadosPage() {
@@ -29,7 +32,10 @@ export default function CooperadosPage() {
   const [cpf, setCpf] = useState("")
   const [placa, setPlaca] = useState("")
   const [contaBancaria, setContaBancaria] = useState("")
+  const [ativo, setAtivo] = useState(true)
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos")
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [editingCooperado, setEditingCooperado] = useState<Cooperado | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { toast } = useToast()
@@ -40,7 +46,13 @@ export default function CooperadosPage() {
 
   const fetchCooperados = async () => {
     try {
-      const response = await fetch("/api/cooperados")
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/cooperados?_t=${timestamp}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
       const data = await response.json()
       setCooperados(data)
     } catch (error) {
@@ -52,11 +64,22 @@ export default function CooperadosPage() {
     }
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchCooperados()
+    setRefreshing(false)
+    toast({
+      title: "Atualizado",
+      description: "Dados atualizados com sucesso",
+    })
+  }
+
   const resetForm = () => {
     setNome("")
     setCpf("")
     setPlaca("")
     setContaBancaria("")
+    setAtivo(true)
     setEditingCooperado(null)
   }
 
@@ -71,7 +94,7 @@ export default function CooperadosPage() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, cpf, placa, conta_bancaria: contaBancaria }),
+        body: JSON.stringify({ nome, cpf, placa, conta_bancaria: contaBancaria, ativo }),
       })
 
       if (response.ok) {
@@ -81,7 +104,7 @@ export default function CooperadosPage() {
         })
         resetForm()
         setIsDialogOpen(false)
-        fetchCooperados()
+        await fetchCooperados()
       } else {
         const data = await response.json()
         throw new Error(data.error || "Erro ao salvar cooperado")
@@ -103,6 +126,7 @@ export default function CooperadosPage() {
     setCpf(cooperado.cpf)
     setPlaca(cooperado.placa)
     setContaBancaria(cooperado.conta_bancaria || "")
+    setAtivo(cooperado.ativo !== false)
     setIsDialogOpen(true)
   }
 
@@ -139,6 +163,13 @@ export default function CooperadosPage() {
     }
   }
 
+  const cooperadosFiltrados = cooperados.filter((cooperado) => {
+    if (filtroStatus === "todos") return true
+    if (filtroStatus === "ativos") return cooperado.ativo !== false
+    if (filtroStatus === "inativos") return cooperado.ativo === false
+    return true
+  })
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
@@ -159,66 +190,103 @@ export default function CooperadosPage() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <CardTitle>Cooperados Cadastrados</CardTitle>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={handleNewCooperado}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Cooperado
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>{editingCooperado ? "Editar Cooperado" : "Novo Cooperado"}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="nome">Nome</Label>
-                        <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
-                      </div>
-                      <div>
-                        <Label htmlFor="cpf">CPF</Label>
-                        <Input
-                          id="cpf"
-                          value={cpf}
-                          onChange={(e) => setCpf(e.target.value)}
-                          placeholder="000.000.000-00"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="placa">Placa</Label>
-                        <Input
-                          id="placa"
-                          value={placa}
-                          onChange={(e) => setPlaca(e.target.value)}
-                          placeholder="ABC-1234"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="contaBancaria">Dados Bancários (Opcional)</Label>
-                        <Textarea
-                          id="contaBancaria"
-                          value={contaBancaria}
-                          onChange={(e) => setContaBancaria(e.target.value)}
-                          placeholder="PIX: (32) 99999-9999 | Banco do Brasil - Ag: 1234 - CC: 12345-6"
-                          rows={3}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Inclua PIX, banco, agência, conta, etc.</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={loading} className="flex-1">
-                          {loading ? "Salvando..." : editingCooperado ? "Atualizar" : "Cadastrar"}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                          Cancelar
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Filtrar status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="ativos">Ativos</SelectItem>
+                      <SelectItem value="inativos">Inativos</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                    Atualizar
+                  </Button>
+
+                  <Link href="/relatorio-cooperados-ativos">
+                    <Button variant="outline">Relatório Ativos</Button>
+                  </Link>
+
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={handleNewCooperado}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Cooperado
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>{editingCooperado ? "Editar Cooperado" : "Novo Cooperado"}</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="nome">Nome</Label>
+                          <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+                        </div>
+                        <div>
+                          <Label htmlFor="cpf">CPF</Label>
+                          <Input
+                            id="cpf"
+                            value={cpf}
+                            onChange={(e) => setCpf(e.target.value)}
+                            placeholder="000.000.000-00"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="placa">Placa</Label>
+                          <Input
+                            id="placa"
+                            value={placa}
+                            onChange={(e) => setPlaca(e.target.value)}
+                            placeholder="ABC-1234"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="contaBancaria">Dados Bancários (Opcional)</Label>
+                          <Textarea
+                            id="contaBancaria"
+                            value={contaBancaria}
+                            onChange={(e) => setContaBancaria(e.target.value)}
+                            placeholder="PIX: (32) 99999-9999 | Banco do Brasil - Ag: 1234 - CC: 12345-6"
+                            rows={3}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Inclua PIX, banco, agência, conta, etc.</p>
+                        </div>
+                        <div>
+                          <Label htmlFor="ativo">Status</Label>
+                          <Select
+                            value={ativo ? "ativo" : "inativo"}
+                            onValueChange={(value) => setAtivo(value === "ativo")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ativo">Ativo</SelectItem>
+                              <SelectItem value="inativo">Inativo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="submit" disabled={loading} className="flex-1">
+                            {loading ? "Salvando..." : editingCooperado ? "Atualizar" : "Cadastrar"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -230,11 +298,12 @@ export default function CooperadosPage() {
                       <TableHead>CPF</TableHead>
                       <TableHead>Placa</TableHead>
                       <TableHead>Dados Bancários</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cooperados.map((cooperado) => (
+                    {cooperadosFiltrados.map((cooperado) => (
                       <TableRow key={cooperado.id}>
                         <TableCell className="font-medium">{cooperado.nome}</TableCell>
                         <TableCell>{cooperado.cpf}</TableCell>
@@ -247,6 +316,11 @@ export default function CooperadosPage() {
                               <span className="text-muted-foreground italic">Não informado</span>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={cooperado.ativo !== false ? "default" : "secondary"}>
+                            {cooperado.ativo !== false ? "Ativo" : "Inativo"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
