@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw } from "lucide-react"
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Edit,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+  Printer,
+  FileText,
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -59,6 +71,11 @@ export default function DebitosPage() {
   const [filtroCooperado, setFiltroCooperado] = useState("todos")
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos")
   const [filtroStatus, setFiltroStatus] = useState("todos")
+  const [filtroDataInicio, setFiltroDataInicio] = useState("")
+  const [filtroDataFim, setFiltroDataFim] = useState("")
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false)
+  const relatorioRef = useRef<HTMLDivElement>(null)
+  // </CHANGE>
   const [editingDebito, setEditingDebito] = useState<Debito | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPagamentoDialogOpen, setIsPagamentoDialogOpen] = useState(false)
@@ -512,7 +529,6 @@ export default function DebitosPage() {
     )
   }
 
-  // Aplicar filtros
   let debitosFiltrados = debitos
 
   if (filtroCooperado !== "todos") {
@@ -531,11 +547,217 @@ export default function DebitosPage() {
     debitosFiltrados = debitosFiltrados.filter((debito) => debito.status === filtroStatus)
   }
 
-  // Calcular estatísticas
+  // Filtro por período
+  if (filtroDataInicio) {
+    debitosFiltrados = debitosFiltrados.filter((debito) => debito.data >= filtroDataInicio)
+  }
+
+  if (filtroDataFim) {
+    debitosFiltrados = debitosFiltrados.filter((debito) => debito.data <= filtroDataFim)
+  }
+
+  // Calcular estatísticas dos débitos filtrados
+  const totalFiltradosPendentes = debitosFiltrados.filter((d) => d.status === "pendente").length
+  const totalFiltradosPagos = debitosFiltrados.filter((d) => d.status === "pago").length
+  const valorFiltradoPendente = debitosFiltrados
+    .filter((d) => d.status === "pendente")
+    .reduce((sum, d) => sum + d.valor, 0)
+  const valorFiltradoPago = debitosFiltrados.filter((d) => d.status === "pago").reduce((sum, d) => sum + d.valor, 0)
+  const valorFiltradoTotal = debitosFiltrados.reduce((sum, d) => sum + d.valor, 0)
+  // </CHANGE>
+
+  // Calcular estatísticas gerais
   const totalPendentes = debitos.filter((d) => d.status === "pendente").length
   const totalPagos = debitos.filter((d) => d.status === "pago").length
   const valorPendente = debitos.filter((d) => d.status === "pendente").reduce((sum, d) => sum + d.valor, 0)
   const valorPago = debitos.filter((d) => d.status === "pago").reduce((sum, d) => sum + d.valor, 0)
+
+  const handleGerarRelatorio = () => {
+    if (debitosFiltrados.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Nenhum débito encontrado com os filtros selecionados",
+        variant: "destructive",
+      })
+      return
+    }
+    setMostrarRelatorio(true)
+  }
+
+  const handleImprimirRelatorio = () => {
+    window.print()
+  }
+
+  const handleFecharRelatorio = () => {
+    setMostrarRelatorio(false)
+  }
+
+  // Agrupar débitos por cooperado para o relatório
+  const debitosAgrupados = debitosFiltrados.reduce(
+    (acc, debito) => {
+      if (!acc[debito.cooperado_nome]) {
+        acc[debito.cooperado_nome] = []
+      }
+      acc[debito.cooperado_nome].push(debito)
+      return acc
+    },
+    {} as Record<string, Debito[]>,
+  )
+  // </CHANGE>
+
+  if (mostrarRelatorio) {
+    return (
+      <div className="min-h-screen bg-white">
+        {/* Header do relatório - não imprime */}
+        <div className="print:hidden bg-gray-100 p-4 border-b">
+          <div className="flex items-center justify-between max-w-5xl mx-auto">
+            <h1 className="text-xl font-bold">Relatório de Débitos</h1>
+            <div className="flex gap-2">
+              <Button onClick={handleImprimirRelatorio} variant="default">
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
+              <Button onClick={handleFecharRelatorio} variant="outline">
+                Voltar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Conteúdo do relatório */}
+        <div ref={relatorioRef} className="max-w-5xl mx-auto p-8 print:p-4">
+          {/* Cabeçalho */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold">COOPERVETRA</h1>
+            <h2 className="text-xl mt-2">Relatório de Débitos</h2>
+            <p className="text-sm text-gray-600 mt-2">
+              {filtroDataInicio && filtroDataFim
+                ? `Período: ${formatarData(filtroDataInicio)} a ${formatarData(filtroDataFim)}`
+                : filtroDataInicio
+                  ? `A partir de: ${formatarData(filtroDataInicio)}`
+                  : filtroDataFim
+                    ? `Até: ${formatarData(filtroDataFim)}`
+                    : "Todos os períodos"}
+            </p>
+            {filtroCooperado !== "todos" && <p className="text-sm text-gray-600">Cooperado: {filtroCooperado}</p>}
+            {filtroEmpresa !== "todos" && <p className="text-sm text-gray-600">Empresa: {filtroEmpresa}</p>}
+            {filtroStatus !== "todos" && (
+              <p className="text-sm text-gray-600">Status: {filtroStatus === "pago" ? "Pagos" : "Pendentes"}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-2">Gerado em: {new Date().toLocaleString("pt-BR")}</p>
+          </div>
+
+          {/* Resumo Geral */}
+          <div className="grid grid-cols-4 gap-4 mb-8 print:grid-cols-4">
+            <div className="border rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">Total de Débitos</p>
+              <p className="text-2xl font-bold">{debitosFiltrados.length}</p>
+            </div>
+            <div className="border rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">Pendentes</p>
+              <p className="text-2xl font-bold text-red-600">{totalFiltradosPendentes}</p>
+              <p className="text-xs text-gray-500">R$ {valorFiltradoPendente.toFixed(2)}</p>
+            </div>
+            <div className="border rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">Pagos</p>
+              <p className="text-2xl font-bold text-green-600">{totalFiltradosPagos}</p>
+              <p className="text-xs text-gray-500">R$ {valorFiltradoPago.toFixed(2)}</p>
+            </div>
+            <div className="border rounded-lg p-4 text-center bg-gray-50">
+              <p className="text-sm text-gray-600">Valor Total</p>
+              <p className="text-2xl font-bold text-blue-600">R$ {valorFiltradoTotal.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Tabela detalhada por cooperado */}
+          {Object.entries(debitosAgrupados).map(([cooperadoNome, debitosCooperado]) => {
+            const totalCooperado = debitosCooperado.reduce((sum, d) => sum + d.valor, 0)
+            const pendentesCooperado = debitosCooperado.filter((d) => d.status === "pendente")
+            const pagosCooperado = debitosCooperado.filter((d) => d.status === "pago")
+            const valorPendenteCooperado = pendentesCooperado.reduce((sum, d) => sum + d.valor, 0)
+            const valorPagoCooperado = pagosCooperado.reduce((sum, d) => sum + d.valor, 0)
+
+            return (
+              <div key={cooperadoNome} className="mb-8 break-inside-avoid">
+                <div className="bg-gray-100 p-3 rounded-t-lg">
+                  <h3 className="font-bold text-lg">{cooperadoNome}</h3>
+                  <div className="flex gap-4 text-sm text-gray-600">
+                    <span>Total: {debitosCooperado.length} débitos</span>
+                    <span>|</span>
+                    <span className="text-red-600">
+                      Pendentes: {pendentesCooperado.length} (R$ {valorPendenteCooperado.toFixed(2)})
+                    </span>
+                    <span>|</span>
+                    <span className="text-green-600">
+                      Pagos: {pagosCooperado.length} (R$ {valorPagoCooperado.toFixed(2)})
+                    </span>
+                  </div>
+                </div>
+                <table className="w-full border-collapse border">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border p-2 text-left text-sm">Data</th>
+                      <th className="border p-2 text-left text-sm">Empresa</th>
+                      <th className="border p-2 text-left text-sm">Descrição</th>
+                      <th className="border p-2 text-right text-sm">Valor</th>
+                      <th className="border p-2 text-center text-sm">Status</th>
+                      <th className="border p-2 text-left text-sm">Data Baixa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {debitosCooperado.map((debito) => (
+                      <tr key={debito.id} className={debito.status === "pago" ? "bg-green-50" : ""}>
+                        <td className="border p-2 text-sm">{formatarData(debito.data)}</td>
+                        <td className="border p-2 text-sm">{debito.empresa_nome}</td>
+                        <td className="border p-2 text-sm">{debito.descricao}</td>
+                        <td className="border p-2 text-sm text-right">R$ {debito.valor.toFixed(2)}</td>
+                        <td className="border p-2 text-sm text-center">
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${debito.status === "pago" ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"}`}
+                          >
+                            {debito.status === "pago" ? "Pago" : "Pendente"}
+                          </span>
+                        </td>
+                        <td className="border p-2 text-sm">{formatarData(debito.data_baixa)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100 font-bold">
+                      <td className="border p-2 text-sm" colSpan={3}>
+                        SUBTOTAL - {cooperadoNome}
+                      </td>
+                      <td className="border p-2 text-sm text-right">R$ {totalCooperado.toFixed(2)}</td>
+                      <td className="border p-2 text-sm" colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )
+          })}
+
+          {/* Rodapé com total geral */}
+          <div className="mt-8 border-t-2 pt-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <p className="text-sm text-gray-600">Total Pendente</p>
+                <p className="text-xl font-bold text-red-600">R$ {valorFiltradoPendente.toFixed(2)}</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-gray-600">Total Pago</p>
+                <p className="text-xl font-bold text-green-600">R$ {valorFiltradoPago.toFixed(2)}</p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600">Total Geral</p>
+                <p className="text-xl font-bold text-blue-600">R$ {valorFiltradoTotal.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  // </CHANGE>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -638,106 +860,127 @@ export default function DebitosPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <CardTitle className="text-lg sm:text-xl">
                   Débitos Cadastrados
-                  {(filtroCooperado !== "todos" || filtroEmpresa !== "todos" || filtroStatus !== "todos") && (
+                  {(filtroCooperado !== "todos" ||
+                    filtroEmpresa !== "todos" ||
+                    filtroStatus !== "todos" ||
+                    filtroDataInicio ||
+                    filtroDataFim) && (
                     <span className="text-sm font-normal text-muted-foreground ml-2 block sm:inline">
                       ({debitosFiltrados.length} de {debitos.length} débitos)
                     </span>
                   )}
                 </CardTitle>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={handleNewDebito} className="w-full sm:w-auto">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Débito
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md mx-4">
-                    <DialogHeader>
-                      <DialogTitle>{editingDebito ? "Editar Débito" : "Novo Débito"}</DialogTitle>
-                      <DialogDescription>
-                        {editingDebito
-                          ? "Atualize as informações do débito existente"
-                          : "Preencha os dados para cadastrar um novo débito"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="cooperado">Cooperado</Label>
-                        <Select value={cooperadoId} onValueChange={setCooperadoId} required>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o cooperado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cooperados.map((cooperado) => (
-                              <SelectItem key={cooperado.id} value={cooperado.id.toString()}>
-                                {cooperado.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="empresa">Empresa</Label>
-                        <Select value={empresaId} onValueChange={setEmpresaId} required>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a empresa" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {empresas.map((empresa) => (
-                              <SelectItem key={empresa.id} value={empresa.id.toString()}>
-                                {empresa.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="descricao">Descrição</Label>
-                        <Textarea
-                          id="descricao"
-                          value={descricao}
-                          onChange={(e) => setDescricao(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="data">Data</Label>
-                        <Input id="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
-                      </div>
-                      <div>
-                        <Label htmlFor="valor">Valor (R$)</Label>
-                        <Input
-                          id="valor"
-                          type="number"
-                          step="0.01"
-                          value={valor}
-                          onChange={(e) => setValor(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" disabled={loading} className="flex-1">
-                          {loading ? "Salvando..." : editingDebito ? "Atualizar" : "Cadastrar"}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                          Cancelar
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={handleGerarRelatorio}
+                    disabled={debitosFiltrados.length === 0}
+                    className="flex-1 sm:flex-none bg-transparent"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Relatório
+                  </Button>
+                  {/* </CHANGE> */}
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={handleNewDebito} className="flex-1 sm:flex-none">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Débito
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md mx-4">
+                      <DialogHeader>
+                        <DialogTitle>{editingDebito ? "Editar Débito" : "Novo Débito"}</DialogTitle>
+                        <DialogDescription>
+                          {editingDebito
+                            ? "Atualize as informações do débito existente"
+                            : "Preencha os dados para cadastrar um novo débito"}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="cooperado">Cooperado</Label>
+                          <Select value={cooperadoId} onValueChange={setCooperadoId} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o cooperado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cooperados.map((cooperado) => (
+                                <SelectItem key={cooperado.id} value={cooperado.id.toString()}>
+                                  {cooperado.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="empresa">Empresa</Label>
+                          <Select value={empresaId} onValueChange={setEmpresaId} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a empresa" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {empresas.map((empresa) => (
+                                <SelectItem key={empresa.id} value={empresa.id.toString()}>
+                                  {empresa.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="descricao">Descrição</Label>
+                          <Textarea
+                            id="descricao"
+                            value={descricao}
+                            onChange={(e) => setDescricao(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="data">Data</Label>
+                          <Input
+                            id="data"
+                            type="date"
+                            value={data}
+                            onChange={(e) => setData(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="valor">Valor (R$)</Label>
+                          <Input
+                            id="valor"
+                            type="number"
+                            step="0.01"
+                            value={valor}
+                            onChange={(e) => setValor(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="submit" disabled={loading} className="flex-1">
+                            {loading ? "Salvando..." : editingDebito ? "Atualizar" : "Cadastrar"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
-              {/* Filtros */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 items-end">
                 <div>
-                  <Label htmlFor="filtroCooperado">Filtrar por Cooperado</Label>
+                  <Label htmlFor="filtroCooperado">Cooperado</Label>
                   <Select value={filtroCooperado} onValueChange={setFiltroCooperado}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos os cooperados" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos os cooperados</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
                       {cooperados.map((cooperado) => (
                         <SelectItem key={cooperado.id} value={cooperado.nome}>
                           {cooperado.nome}
@@ -747,13 +990,13 @@ export default function DebitosPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="filtroEmpresa">Filtrar por Empresa</Label>
+                  <Label htmlFor="filtroEmpresa">Empresa</Label>
                   <Select value={filtroEmpresa} onValueChange={setFiltroEmpresa}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todas as empresas" />
+                      <SelectValue placeholder="Todas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todas as empresas</SelectItem>
+                      <SelectItem value="todos">Todas</SelectItem>
                       {empresas.map((empresa) => (
                         <SelectItem key={empresa.id} value={empresa.nome}>
                           {empresa.nome}
@@ -763,33 +1006,93 @@ export default function DebitosPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="filtroStatus">Filtrar por Status</Label>
+                  <Label htmlFor="filtroStatus">Status</Label>
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Todos os status" />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos os status</SelectItem>
+                      <SelectItem value="todos">Todos</SelectItem>
                       <SelectItem value="pendente">Pendentes</SelectItem>
                       <SelectItem value="pago">Pagos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="sm:col-span-2 lg:col-span-1">
+                <div>
+                  <Label htmlFor="filtroDataInicio">Data Início</Label>
+                  <Input
+                    id="filtroDataInicio"
+                    type="date"
+                    value={filtroDataInicio}
+                    onChange={(e) => setFiltroDataInicio(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="filtroDataFim">Data Fim</Label>
+                  <Input
+                    id="filtroDataFim"
+                    type="date"
+                    value={filtroDataFim}
+                    onChange={(e) => setFiltroDataFim(e.target.value)}
+                  />
+                </div>
+                <div className="lg:col-span-2">
                   <Button
                     variant="outline"
                     onClick={() => {
                       setFiltroCooperado("todos")
                       setFiltroEmpresa("todos")
                       setFiltroStatus("todos")
+                      setFiltroDataInicio("")
+                      setFiltroDataFim("")
                     }}
-                    disabled={filtroCooperado === "todos" && filtroEmpresa === "todos" && filtroStatus === "todos"}
+                    disabled={
+                      filtroCooperado === "todos" &&
+                      filtroEmpresa === "todos" &&
+                      filtroStatus === "todos" &&
+                      !filtroDataInicio &&
+                      !filtroDataFim
+                    }
                     className="w-full"
                   >
                     Limpar Filtros
                   </Button>
                 </div>
               </div>
+
+              {/* Card de resumo dos filtrados */}
+              {(filtroCooperado !== "todos" ||
+                filtroEmpresa !== "todos" ||
+                filtroStatus !== "todos" ||
+                filtroDataInicio ||
+                filtroDataFim) && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 mb-2">Resumo dos Filtrados</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Total:</span>
+                      <span className="font-bold ml-2">{debitosFiltrados.length}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Pendentes:</span>
+                      <span className="font-bold text-red-600 ml-2">
+                        {totalFiltradosPendentes} (R$ {valorFiltradoPendente.toFixed(2)})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Pagos:</span>
+                      <span className="font-bold text-green-600 ml-2">
+                        {totalFiltradosPagos} (R$ {valorFiltradoPago.toFixed(2)})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Valor Total:</span>
+                      <span className="font-bold text-blue-600 ml-2">R$ {valorFiltradoTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* </CHANGE> */}
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
