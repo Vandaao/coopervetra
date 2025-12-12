@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { hashPassword } from "@/lib/crypto"
+import { validateUsername, validatePassword, sanitizeString } from "@/lib/input-validation"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-// Função simples para hash de senha
-function simpleHash(password: string): string {
-  return Buffer.from(password).toString("base64")
-}
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+export const fetchCache = "force-no-store"
 
 export async function GET() {
   try {
@@ -26,12 +27,32 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password, nome, tipo } = await request.json()
 
-    // Hash da senha
-    const hashedPassword = simpleHash(password)
+    const usernameValidation = validateUsername(username)
+    if (!usernameValidation.valid) {
+      return NextResponse.json({ error: usernameValidation.error }, { status: 400 })
+    }
+
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return NextResponse.json({ error: passwordValidation.error }, { status: 400 })
+    }
+
+    if (!nome || nome.trim().length < 3) {
+      return NextResponse.json({ error: "Nome deve ter pelo menos 3 caracteres" }, { status: 400 })
+    }
+
+    if (!["admin", "usuario"].includes(tipo)) {
+      return NextResponse.json({ error: "Tipo de usuário inválido" }, { status: 400 })
+    }
+
+    const sanitizedUsername = sanitizeString(username, 50)
+    const sanitizedNome = sanitizeString(nome, 255)
+
+    const hashedPassword = await hashPassword(password)
 
     const result = await sql`
       INSERT INTO usuarios (username, password, nome, tipo, ativo)
-      VALUES (${username}, ${hashedPassword}, ${nome}, ${tipo}, true)
+      VALUES (${sanitizedUsername}, ${hashedPassword}, ${sanitizedNome}, ${tipo}, true)
       RETURNING id, username, nome, tipo, ativo, created_at
     `
 
