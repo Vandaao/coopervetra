@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, Trophy, Medal } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Cooperado {
@@ -38,14 +38,6 @@ interface Frete {
   data: string
   status?: string
   data_pagamento?: string
-}
-
-interface RankingItem {
-  id: number
-  nome: string
-  placa: string
-  total_km: number
-  total_fretes: number
 }
 
 export default function FretesPage() {
@@ -74,10 +66,6 @@ export default function FretesPage() {
   const [isPagamentoLoteDialogOpen, setIsPagamentoLoteDialogOpen] = useState(false)
   const [dataPagamentoLote, setDataPagamentoLote] = useState("")
 
-  const [rankingMensal, setRankingMensal] = useState<RankingItem[]>([])
-  const [dataInicioRanking, setDataInicioRanking] = useState("")
-  const [dataFimRanking, setDataFimRanking] = useState("")
-
   const { toast } = useToast()
 
   useEffect(() => {
@@ -85,38 +73,7 @@ export default function FretesPage() {
     fetchFretes()
     fetchCooperados()
     fetchEmpresas()
-
-    const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    setDataInicioRanking(firstDay.toISOString().split("T")[0])
-    setDataFimRanking(lastDay.toISOString().split("T")[0])
   }, [])
-
-  useEffect(() => {
-    if (dataInicioRanking && dataFimRanking) {
-      fetchRanking()
-    }
-  }, [dataInicioRanking, dataFimRanking])
-
-  const fetchRanking = async () => {
-    try {
-      const timestamp = new Date().getTime()
-      const response = await fetch(
-        `/api/ranking-km?dataInicio=${dataInicioRanking}&dataFim=${dataFimRanking}&_t=${timestamp}`,
-        {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-        },
-      )
-      const data = await response.json()
-      setRankingMensal(data.slice(0, 10)) // Top 10
-    } catch (error) {
-      console.error("Erro ao carregar ranking:", error)
-    }
-  }
 
   const checkMigration = async () => {
     try {
@@ -225,8 +182,6 @@ export default function FretesPage() {
     await fetchFretes()
     await fetchCooperados()
     await fetchEmpresas()
-    // Atualiza o ranking também no refresh
-    await fetchRanking()
     setRefreshing(false)
     toast({
       title: "Atualizado",
@@ -278,11 +233,7 @@ export default function FretesPage() {
         })
         resetForm()
         setIsDialogOpen(false)
-        setTimeout(() => {
-          fetchFretes()
-          // Atualiza o ranking após salvar frete
-          fetchRanking()
-        }, 300)
+        setTimeout(() => fetchFretes(), 300)
       } else {
         throw new Error("Erro ao salvar")
       }
@@ -337,11 +288,7 @@ export default function FretesPage() {
           title: "Sucesso",
           description: "Frete excluído com sucesso",
         })
-        setTimeout(() => {
-          fetchFretes()
-          // Atualiza o ranking após excluir frete
-          fetchRanking()
-        }, 300)
+        setTimeout(() => fetchFretes(), 300)
       } else {
         throw new Error("Erro ao excluir")
       }
@@ -446,7 +393,7 @@ export default function FretesPage() {
 
   const handleSelecionarTodos = (checked: boolean) => {
     if (checked) {
-      const fretesPendentes = fretesFiltrados.filter((f) => !f.status || f.status === "pendente").map((f) => f.id)
+      const fretesPendentes = fretes.filter((f) => !f.status || f.status === "pendente").map((f) => f.id)
       setFretesSelecionados(fretesPendentes)
     } else {
       setFretesSelecionados([])
@@ -547,19 +494,6 @@ export default function FretesPage() {
   const todosSelecionados =
     fretesPendentesFiltrados.length > 0 && fretesPendentesFiltrados.every((f) => fretesSelecionados.includes(f.id))
 
-  const getMedalColor = (position: number) => {
-    switch (position) {
-      case 0:
-        return "bg-yellow-500 text-white"
-      case 1:
-        return "bg-gray-400 text-white"
-      case 2:
-        return "bg-amber-600 text-white"
-      default:
-        return "bg-blue-100 text-blue-800"
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -603,76 +537,7 @@ export default function FretesPage() {
           </Alert>
         )}
 
-        <Card className="mb-6 border-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <CardTitle className="flex items-center text-xl">
-                <Trophy className="h-6 w-6 mr-2 text-yellow-500" />
-                Ranking de KM Rodados
-              </CardTitle>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  type="date"
-                  value={dataInicioRanking}
-                  onChange={(e) => setDataInicioRanking(e.target.value)}
-                  className="w-[140px] bg-white"
-                />
-                <span className="text-sm">até</span>
-                <Input
-                  type="date"
-                  value={dataFimRanking}
-                  onChange={(e) => setDataFimRanking(e.target.value)}
-                  className="w-[140px] bg-white"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {rankingMensal.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">Nenhum frete registrado no período selecionado.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[60px]">Pos.</TableHead>
-                      <TableHead>Cooperado</TableHead>
-                      <TableHead>Placa</TableHead>
-                      <TableHead className="text-right">Total KM</TableHead>
-                      <TableHead className="text-right">Fretes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rankingMensal.map((item, index) => (
-                      <TableRow key={item.id} className={index < 3 ? "bg-yellow-50/50" : ""}>
-                        <TableCell>
-                          <Badge className={getMedalColor(index)}>
-                            <span className="flex items-center gap-1">
-                              {index === 0 ? (
-                                <Trophy className="h-3 w-3" />
-                              ) : index < 3 ? (
-                                <Medal className="h-3 w-3" />
-                              ) : null}
-                              {index + 1}º
-                            </span>
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{item.nome}</TableCell>
-                        <TableCell>{item.placa}</TableCell>
-                        <TableCell className="text-right font-bold">
-                          {Number(item.total_km).toLocaleString("pt-BR")} km
-                        </TableCell>
-                        <TableCell className="text-right">{item.total_fretes}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        {/* Fim Seção de Ranking */}
-
+        {/* Formulário de Cadastro */}
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

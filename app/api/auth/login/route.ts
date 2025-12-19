@@ -9,7 +9,7 @@ const sql = neon(process.env.DATABASE_URL!)
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("Recebendo requisição de login")
+    console.log("[v0] Recebendo requisição de login")
 
     const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown"
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { username, password } = body
 
-    console.log("Dados recebidos:", { username, password: password ? "***" : "vazio" })
+    console.log("[v0] Dados recebidos:", { username, password: password ? "***" : "vazio" })
 
     const usernameValidation = validateUsername(username)
     if (!usernameValidation.valid) {
@@ -46,12 +46,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!username || !password) {
-      console.log("Dados faltando")
+      console.log("[v0] Dados faltando")
       return NextResponse.json({ error: "Usuário e senha são obrigatórios" }, { status: 400 })
     }
 
     const sanitizedUsername = sanitizeString(username, 50)
 
+    console.log("[v0] Buscando usuário no banco...")
     const users = await sql`
       SELECT id, username, password, nome, tipo, ativo
       FROM usuarios
@@ -59,35 +60,42 @@ export async function POST(request: NextRequest) {
     `
 
     if (users.length === 0) {
-      console.log("Autenticação falhou")
+      console.log("[v0] Usuário não encontrado")
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 })
     }
 
     const user = users[0]
+    console.log("[v0] Usuário encontrado:", { id: user.id, username: user.username, ativo: user.ativo })
 
     if (!user.ativo) {
       return NextResponse.json({ error: "Usuário inativo. Contate o administrador." }, { status: 403 })
     }
 
+    console.log("[v0] Verificando senha...")
     const isValidPassword = await verifyPassword(password, user.password)
+
     if (!isValidPassword) {
-      console.log("Autenticação falhou")
+      console.log("[v0] Senha inválida")
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 })
     }
 
-    console.log("Chamando authenticateUser")
-    // const user = await authenticateUser(username, password)
-
+    console.log("[v0] Senha válida, gerando token...")
     resetRateLimit(clientIp)
 
     const token = createAuthToken(user.username)
 
-    await sql`
-      INSERT INTO logs_acesso (usuario_id, username, ip, acao, sucesso)
-      VALUES (${user.id}, ${user.username}, ${clientIp}, 'login', true)
-    `
+    try {
+      await sql`
+        INSERT INTO logs_acesso (usuario_id, username, ip, acao, sucesso)
+        VALUES (${user.id}, ${user.username}, ${clientIp}, 'login', true)
+      `
+      console.log("[v0] Log de acesso registrado")
+    } catch (logError) {
+      console.warn("[v0] Aviso: Não foi possível registrar log de acesso:", logError)
+      // Continua o login mesmo se o log falhar
+    }
 
-    console.log("Autenticação bem-sucedida:", user.username)
+    console.log("[v0] Autenticação bem-sucedida:", user.username)
     return NextResponse.json({
       user: {
         id: user.id,
@@ -99,7 +107,10 @@ export async function POST(request: NextRequest) {
       token,
     })
   } catch (error) {
-    console.error("Erro no login:", error)
+    console.error("[v0] Erro no login:", error)
+    if (error instanceof Error) {
+      console.error("[v0] Detalhes do erro:", error.message, error.stack)
+    }
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
   }
 }

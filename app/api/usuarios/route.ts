@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password, nome, tipo } = await request.json()
 
+    console.log("[v0] Criando novo usuário...")
+    console.log("[v0] Username:", username)
+    console.log("[v0] Senha recebida (tamanho):", password.length)
+    console.log("[v0] Nome:", nome)
+    console.log("[v0] Tipo:", tipo)
+
     const usernameValidation = validateUsername(username)
     if (!usernameValidation.valid) {
       return NextResponse.json({ error: usernameValidation.error }, { status: 400 })
@@ -48,7 +54,10 @@ export async function POST(request: NextRequest) {
     const sanitizedUsername = sanitizeString(username, 50)
     const sanitizedNome = sanitizeString(nome, 255)
 
+    console.log("[v0] Gerando hash da senha...")
     const hashedPassword = await hashPassword(password)
+    console.log("[v0] Hash gerado, tamanho:", hashedPassword.length)
+    console.log("[v0] Hash (primeiros 10):", hashedPassword.substring(0, 10))
 
     const result = await sql`
       INSERT INTO usuarios (username, password, nome, tipo, ativo)
@@ -56,9 +65,11 @@ export async function POST(request: NextRequest) {
       RETURNING id, username, nome, tipo, ativo, created_at
     `
 
+    console.log("[v0] Usuário criado com sucesso:", result[0].id)
+
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
-    console.error("Erro ao criar usuário:", error)
+    console.error("[v0] Erro ao criar usuário:", error)
     if (error instanceof Error && error.message.includes("duplicate key")) {
       return NextResponse.json({ error: "Nome de usuário já existe" }, { status: 400 })
     }
