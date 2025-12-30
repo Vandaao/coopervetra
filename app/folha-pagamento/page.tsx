@@ -8,15 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { ArrowLeft, Download, DollarSign, RefreshCw, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Download, DollarSign, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AuthGuard } from "@/components/auth-guard"
 import { PDFGeneratorFolha } from "@/components/pdf-generator-folha"
@@ -52,8 +44,6 @@ export default function FolhaPagamentoPage() {
   const [relatorio, setRelatorio] = useState<FolhaPagamentoData | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [showPagamentoDialog, setShowPagamentoDialog] = useState(false)
-  const [processandoPagamento, setProcessandoPagamento] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -97,7 +87,10 @@ export default function FolhaPagamentoPage() {
       if (response.ok) {
         setRelatorio(data)
         console.log("[v0] Folha de pagamento carregada com sucesso")
-        setShowPagamentoDialog(true)
+        toast({
+          title: "Sucesso",
+          description: "Folha de pagamento gerada com sucesso",
+        })
       } else {
         throw new Error(data.error || "Erro ao gerar folha de pagamento")
       }
@@ -150,58 +143,6 @@ export default function FolhaPagamentoPage() {
 
   const handleImprimir = () => {
     window.print()
-  }
-
-  const handleProcessarPagamentos = async () => {
-    if (!relatorio) return
-
-    setProcessandoPagamento(true)
-    try {
-      const cooperadosIds = relatorio.cooperados.map((c) => c.cooperado_id)
-
-      const response = await fetch("/api/relatorios/folha-pagamento/processar-pagamentos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-        body: JSON.stringify({
-          empresa_id: empresaId,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          cooperados_ids: cooperadosIds,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        toast({
-          title: "Sucesso",
-          description: `${data.fretes_pagos} fretes e ${data.debitos_pagos} débitos marcados como pagos`,
-        })
-        setShowPagamentoDialog(false)
-      } else {
-        throw new Error(data.error || "Erro ao processar pagamentos")
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao processar pagamentos",
-        variant: "destructive",
-      })
-    } finally {
-      setProcessandoPagamento(false)
-    }
-  }
-
-  const handlePularPagamento = () => {
-    setShowPagamentoDialog(false)
-    toast({
-      title: "Folha Gerada",
-      description: "Folha de pagamento gerada com sucesso",
-    })
   }
 
   const formatarData = (dataString: string) => {
@@ -421,46 +362,6 @@ export default function FolhaPagamentoPage() {
             </div>
           )}
         </main>
-
-        <Dialog open={showPagamentoDialog} onOpenChange={setShowPagamentoDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Dar Baixa Automática?
-              </DialogTitle>
-              <DialogDescription className="space-y-2">
-                <div>Folha de pagamento gerada com sucesso!</div>
-                <div className="font-semibold">
-                  Deseja marcar como pagos todos os fretes e débitos dos cooperados deste relatório no período
-                  selecionado?
-                </div>
-                {relatorio && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                    <div>
-                      <strong>Período:</strong> {formatarData(relatorio.data_inicio)} a{" "}
-                      {formatarData(relatorio.data_fim)}
-                    </div>
-                    <div>
-                      <strong>Cooperados:</strong> {relatorio.cooperados.length}
-                    </div>
-                    <div>
-                      <strong>Empresa:</strong> {relatorio.empresa_nome}
-                    </div>
-                  </div>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={handlePularPagamento} disabled={processandoPagamento}>
-                Não, apenas gerar folha
-              </Button>
-              <Button onClick={handleProcessarPagamentos} disabled={processandoPagamento}>
-                {processandoPagamento ? "Processando..." : "Sim, dar baixa automática"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </AuthGuard>
   )

@@ -55,3 +55,5 @@ export function AuthGuard({ children, requireAdmin = false }: AuthGuardProps) {
 
   return <>{children}</>
 }
+
+export default AuthGuard
