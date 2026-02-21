@@ -8,14 +8,27 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Download, Building2, RefreshCw } from "lucide-react"
+import { ArrowLeft, Download, Building2, RefreshCw, AlertTriangle, Check, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AuthGuard } from "@/components/auth-guard"
 import { PDFGeneratorEmpresa } from "@/components/pdf-generator-empresa"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 
 interface Empresa {
   id: number
   nome: string
+}
+
+interface DebitoPendente {
+  id: number
+  cooperado_id: number
+  cooperado_nome: string
+  descricao: string
+  data: string
+  valor: number
+  selecionado: boolean
 }
 
 interface RelatorioEmpresaData {
@@ -64,6 +77,9 @@ export default function RelatoriosEmpresaPage() {
   const [relatorio, setRelatorio] = useState<RelatorioEmpresaData | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [debitosPendentes, setDebitosPendentes] = useState<DebitoPendente[]>([])
+  const [showDebitosPendentes, setShowDebitosPendentes] = useState(false)
+  const [processandoDebitos, setProcessandoDebitos] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -80,6 +96,30 @@ export default function RelatoriosEmpresaPage() {
     }
   }
 
+  const gerarRelatorioFinal = async () => {
+    const timestamp = new Date().getTime()
+    const response = await fetch(
+      `/api/relatorios/empresa?empresa_id=${empresaId}&data_inicio=${dataInicio}&data_fim=${dataFim}&_t=${timestamp}`,
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      },
+    )
+    const data = await response.json()
+
+    if (response.ok) {
+      setRelatorio(data)
+      toast({
+        title: "Sucesso",
+        description: "Relatorio gerado com sucesso",
+      })
+    } else {
+      throw new Error(data.error || "Erro ao gerar relatorio")
+    }
+  }
+
   const handleGerarRelatorio = async () => {
     if (!empresaId || !dataInicio || !dataFim) {
       toast({
@@ -92,9 +132,10 @@ export default function RelatoriosEmpresaPage() {
 
     setLoading(true)
     try {
+      // Verificar debitos pendentes anteriores ao periodo
       const timestamp = new Date().getTime()
-      const response = await fetch(
-        `/api/relatorios/empresa?empresa_id=${empresaId}&data_inicio=${dataInicio}&data_fim=${dataFim}&_t=${timestamp}`,
+      const resPendentes = await fetch(
+        `/api/relatorios/empresa/debitos-pendentes?empresa_id=${empresaId}&data_inicio=${dataInicio}&_t=${timestamp}`,
         {
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -102,22 +143,105 @@ export default function RelatoriosEmpresaPage() {
           },
         },
       )
-      const data = await response.json()
+      const dataPendentes = await resPendentes.json()
 
-      if (response.ok) {
-        setRelatorio(data)
-        console.log("[v0] Relatório carregado com sucesso")
-        toast({
-          title: "Sucesso",
-          description: "Relatório gerado com sucesso",
-        })
-      } else {
-        throw new Error(data.error || "Erro ao gerar relatório")
+      if (resPendentes.ok && dataPendentes.debitos_pendentes && dataPendentes.debitos_pendentes.length > 0) {
+        // Ha debitos pendentes fora do periodo - perguntar ao usuario
+        setDebitosPendentes(
+          dataPendentes.debitos_pendentes.map((d: Omit<DebitoPendente, "selecionado">) => ({
+            ...d,
+            selecionado: true,
+          })),
+        )
+        setShowDebitosPendentes(true)
+        setLoading(false)
+        return
       }
+
+      // Sem debitos pendentes - gerar relatorio direto
+      await gerarRelatorioFinal()
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao gerar relatório",
+        description: "Erro ao gerar relatorio",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggleDebito = (id: number) => {
+    setDebitosPendentes((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, selecionado: !d.selecionado } : d)),
+    )
+  }
+
+  const handleToggleTodos = () => {
+    const todosSelecionados = debitosPendentes.every((d) => d.selecionado)
+    setDebitosPendentes((prev) =>
+      prev.map((d) => ({ ...d, selecionado: !todosSelecionados })),
+    )
+  }
+
+  const handleConfirmarAlteracaoDebitos = async () => {
+    const selecionados = debitosPendentes.filter((d) => d.selecionado)
+
+    setProcessandoDebitos(true)
+    try {
+      if (selecionados.length > 0) {
+        // Alterar a data dos debitos selecionados para a data inicio do filtro
+        const debitoIds = selecionados.map((d) => d.id)
+        const timestamp = new Date().getTime()
+        const res = await fetch(`/api/debitos/alterar-data-lote?_t=${timestamp}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          body: JSON.stringify({
+            debito_ids: debitoIds,
+            nova_data: dataInicio,
+          }),
+        })
+
+        if (!res.ok) {
+          throw new Error("Erro ao alterar datas dos debitos")
+        }
+
+        toast({
+          title: "Debitos atualizados",
+          description: `${selecionados.length} debito(s) movido(s) para o periodo do relatorio`,
+        })
+      }
+
+      setShowDebitosPendentes(false)
+
+      // Agora gerar o relatorio com os debitos incluidos
+      setLoading(true)
+      await gerarRelatorioFinal()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao processar debitos pendentes",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessandoDebitos(false)
+      setLoading(false)
+    }
+  }
+
+  const handleIgnorarDebitos = async () => {
+    setShowDebitosPendentes(false)
+    setLoading(true)
+    try {
+      await gerarRelatorioFinal()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar relatorio",
         variant: "destructive",
       })
     } finally {
@@ -248,6 +372,109 @@ export default function RelatoriosEmpresaPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Dialog de Debitos Pendentes */}
+          <Dialog open={showDebitosPendentes} onOpenChange={setShowDebitosPendentes}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-5 w-5" />
+                  Debitos Pendentes Encontrados
+                </DialogTitle>
+                <DialogDescription>
+                  Foram encontrados debitos pendentes com data anterior ao periodo do relatorio.
+                  Deseja alterar a data desses debitos para inclui-los no relatorio?
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={debitosPendentes.every((d) => d.selecionado)}
+                      onCheckedChange={handleToggleTodos}
+                    />
+                    <span className="font-medium text-sm">Selecionar / Desmarcar todos</span>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+                    {debitosPendentes.filter((d) => d.selecionado).length} de {debitosPendentes.length} selecionados
+                  </Badge>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-10"></TableHead>
+                        <TableHead>Cooperado</TableHead>
+                        <TableHead>Descricao</TableHead>
+                        <TableHead>Data Original</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {debitosPendentes.map((debito) => (
+                        <TableRow
+                          key={debito.id}
+                          className={debito.selecionado ? "bg-amber-50/50" : ""}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={debito.selecionado}
+                              onCheckedChange={() => handleToggleDebito(debito.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">{debito.cooperado_nome}</TableCell>
+                          <TableCell className="text-sm">{debito.descricao}</TableCell>
+                          <TableCell className="text-sm">{formatarData(debito.data)}</TableCell>
+                          <TableCell className="text-right font-medium text-sm">
+                            R$ {debito.valor.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+                  <span className="text-sm font-medium">Total dos selecionados:</span>
+                  <span className="font-bold text-lg">
+                    R$ {debitosPendentes
+                      .filter((d) => d.selecionado)
+                      .reduce((sum, d) => sum + d.valor, 0)
+                      .toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  Os debitos selecionados terao sua data alterada para{" "}
+                  <strong>{dataInicio ? formatarData(dataInicio) : ""}</strong> (inicio do periodo)
+                  e serao incluidos no relatorio.
+                </div>
+              </div>
+
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleIgnorarDebitos}
+                  disabled={processandoDebitos}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Ignorar e Gerar Sem Eles
+                </Button>
+                <Button
+                  onClick={handleConfirmarAlteracaoDebitos}
+                  disabled={processandoDebitos || debitosPendentes.filter((d) => d.selecionado).length === 0}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  {processandoDebitos
+                    ? "Processando..."
+                    : `Incluir ${debitosPendentes.filter((d) => d.selecionado).length} Debito(s) e Gerar`}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {relatorio && (
             <div className="space-y-6">
