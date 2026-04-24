@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Empresa não encontrada" }, { status: 404 })
     }
 
-    // Buscar fretes no período agrupados por cooperado
+    // Buscar fretes no período agrupados por cooperado (APENAS FRETES NÃO PAGOS)
     const fretesCooperados = await sql`
       SELECT 
         c.id as cooperado_id,
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       WHERE f.empresa_id = ${empresa_id}
         AND f.data >= ${data_inicio}::date
         AND f.data <= ${data_fim}::date
+        AND (f.data_pagamento IS NULL OR f.data_pagamento::text = '')
       GROUP BY c.id, c.nome
       ORDER BY c.nome
     `
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
       `
     }
 
-    // Buscar detalhes dos fretes para cada cooperado
+    // Buscar detalhes dos fretes para cada cooperado (APENAS FRETES NÃO PAGOS)
     const fretesDetalhados = await sql`
       SELECT 
         f.cooperado_id,
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
       WHERE f.empresa_id = ${empresa_id}
         AND f.data >= ${data_inicio}::date
         AND f.data <= ${data_fim}::date
+        AND (f.data_pagamento IS NULL OR f.data_pagamento::text = '')
       ORDER BY f.cooperado_id, f.data
     `
 
