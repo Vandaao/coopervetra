@@ -777,7 +777,6 @@ export default function FretesPage() {
                     </TableBody>
                   </Table>
                 </div>
-              </div>
 
               {/* Controles de Paginação */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
