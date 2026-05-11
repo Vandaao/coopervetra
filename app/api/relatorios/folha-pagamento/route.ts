@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
           AND empresa_id = ${empresa_id}
           AND data >= ${data_inicio}::date
           AND data <= ${data_fim}::date
+          AND (status IS NULL OR status != 'pago')
         GROUP BY cooperado_id
       `
     }

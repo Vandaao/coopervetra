@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       `
     }
 
-    // Buscar débitos no período - com ou sem filtro de empresa
+    // Buscar débitos em aberto no período - com ou sem filtro de empresa
     let debitos
     if (empresa_id) {
       debitos = await sql`
@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
           AND empresa_id = ${empresa_id}
           AND data >= ${data_inicio}::date
           AND data <= ${data_fim}::date
+          AND (status IS NULL OR status != 'pago')
         ORDER BY data
       `
     } else {
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
         WHERE cooperado_id = ${cooperado_id}
           AND data >= ${data_inicio}::date
           AND data <= ${data_fim}::date
+          AND (status IS NULL OR status != 'pago')
         ORDER BY data
       `
     }
