@@ -782,7 +782,7 @@ export default function FretesPage() {
               {/* Controles de Paginação */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
                 <div className="text-sm text-gray-600">
-                  Mostrando {fretesFiltrados.length === 0 ? 0 : indiceInicio + 1} a {Math.min(indiceFim, fretesFiltrados.length)} de {fretesFiltrados.length} fretes
+                  {`Mostrando ${fretesFiltrados.length === 0 ? 0 : indiceInicio + 1} a ${Math.min(indiceFim, fretesFiltrados.length)} de ${fretesFiltrados.length} fretes`}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -820,7 +820,7 @@ export default function FretesPage() {
                 </div>
 
                 <div className="text-sm text-gray-600">
-                  Página {totalPaginas === 0 ? 0 : paginaAtual} de {totalPaginas}
+                  {`Página ${totalPaginas === 0 ? 0 : paginaAtual} de ${totalPaginas}`}
                 </div>
               </div>
             </CardContent>
