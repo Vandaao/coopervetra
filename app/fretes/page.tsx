@@ -66,8 +66,9 @@ export default function FretesPage() {
   const [fretesSelecionados, setFretesSelecionados] = useState<number[]>([])
   const [isPagamentoLoteDialogOpen, setIsPagamentoLoteDialogOpen] = useState(false)
   const [dataPagamentoLote, setDataPagamentoLote] = useState("")
-  const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina] = useState(10)
+
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { toast } = useToast()
 
