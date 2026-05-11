@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AuthGuard from "@/components/auth-guard"
 
@@ -66,6 +66,9 @@ export default function FretesPage() {
   const [fretesSelecionados, setFretesSelecionados] = useState<number[]>([])
   const [isPagamentoLoteDialogOpen, setIsPagamentoLoteDialogOpen] = useState(false)
   const [dataPagamentoLote, setDataPagamentoLote] = useState("")
+  const [itensPorPagina] = useState(10)
+
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { toast } = useToast()
 
@@ -180,6 +183,7 @@ export default function FretesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
+    setPaginaAtual(1)
     await fetchFretes()
     await fetchCooperados()
     await fetchEmpresas()
@@ -234,6 +238,7 @@ export default function FretesPage() {
         })
         resetForm()
         setIsDialogOpen(false)
+        setPaginaAtual(1)
         setTimeout(() => fetchFretes(), 300)
       } else {
         throw new Error("Erro ao salvar")
@@ -289,6 +294,7 @@ export default function FretesPage() {
           title: "Sucesso",
           description: "Frete excluído com sucesso",
         })
+        setPaginaAtual(1)
         setTimeout(() => fetchFretes(), 300)
       } else {
         throw new Error("Erro ao excluir")
@@ -531,6 +537,12 @@ export default function FretesPage() {
   const todosSelecionados =
     fretesPendentesFiltrados.length > 0 && fretesPendentesFiltrados.every((f) => fretesSelecionados.includes(f.id))
 
+  // Cálculo da paginação
+  const totalPaginas = Math.ceil(fretesFiltrados.length / itensPorPagina)
+  const indiceInicio = (paginaAtual - 1) * itensPorPagina
+  const indiceFim = indiceInicio + itensPorPagina
+  const fretesPaginados = fretesFiltrados.slice(indiceInicio, indiceFim)
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
@@ -674,99 +686,127 @@ export default function FretesPage() {
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {fretesFiltrados.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                          Nenhum frete encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      fretesFiltrados.map((frete) => {
-                        const isPago = frete.status === "pago"
-                        const isPendente = !frete.status || frete.status === "pendente"
-
-                        return (
-                          <TableRow key={frete.id}>
-                            <TableCell>
-                              {isPendente && (
-                                <Checkbox
-                                  checked={fretesSelecionados.includes(frete.id)}
-                                  onCheckedChange={(checked) => handleSelecionarFrete(frete.id, checked as boolean)}
-                                  aria-label={`Selecionar frete ${frete.id}`}
-                                />
+                    <TableBody>
+                      {fretesPaginados.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={filtroStatus === "pago" ? 9 : 10} className="text-center py-8">
+                            <p className="text-gray-500">Nenhum frete encontrado</p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        fretesPaginados.map((frete) => {
+                          const isPago = frete.status === "pago"
+                          return (
+                            <TableRow key={frete.id} className={isPago ? "bg-green-50" : ""}>
+                              {filtroStatus !== "pago" && (
+                                <TableCell>
+                                  <Checkbox
+                                    checked={fretesSelecionados.includes(frete.id)}
+                                    onCheckedChange={(checked) => handleSelecionarFrete(frete.id, checked as boolean)}
+                                    disabled={isPago}
+                                  />
+                                </TableCell>
                               )}
-                            </TableCell>
-                            <TableCell className="font-medium">{frete.cooperado_nome}</TableCell>
-                            <TableCell>{frete.empresa_nome}</TableCell>
-                            <TableCell>{frete.carga}</TableCell>
-                            <TableCell className="text-right">{frete.km}</TableCell>
-                            <TableCell className="text-right">
-                              {frete.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {frete.chapada.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {(frete.valor + frete.chapada).toLocaleString("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                            </TableCell>
-                            <TableCell>{formatarData(frete.data)}</TableCell>
-                            <TableCell>
-                              <Badge variant={isPago ? "default" : "secondary"}>{isPago ? "Pago" : "Pendente"}</Badge>
-                              {isPago && frete.data_pagamento && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {formatarData(frete.data_pagamento)}
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                {isPendente && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleMarcarPago(frete)}
-                                    className="text-green-600 hover:text-green-700"
-                                    title="Marcar como pago"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
+                              <TableCell className="font-medium text-sm sm:text-base">{frete.cooperado_nome}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">{frete.empresa_nome}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">{frete.carga}</TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">{frete.km} km</TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">
+                                R$ {Number(frete.valor).toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm text-right">
+                                R$ {Number(frete.chapada).toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-xs sm:text-sm">{formatarData(frete.data)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">
+                                {isPago ? (
+                                  <Badge className="bg-green-600 text-white">
+                                    Pago em {formatarData(frete.data_pagamento || "")}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline">Pendente</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right space-x-1 sm:space-x-2">
+                                {!isPago && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMarcarPago(frete)}
+                                      className="text-xs h-7 px-2"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Pagar
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEdit(frete)}
+                                      className="text-xs h-7 px-2"
+                                    >
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDelete(frete.id)}
+                                      className="text-xs h-7 px-2 text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </>
                                 )}
                                 {isPago && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleDesfazerPagamento(frete)}
-                                    className="text-orange-600 hover:text-orange-700"
-                                    title="Desfazer pagamento"
+                                    className="text-xs h-7 px-2 text-blue-600 hover:text-blue-700"
                                   >
-                                    <XCircle className="h-4 w-4" />
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Desfazer
                                   </Button>
                                 )}
-                                <Button variant="outline" size="sm" onClick={() => handleEdit(frete)} title="Editar">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(frete.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                  title="Excluir"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+              {/* Controles de Paginação */}
+              {totalPaginas > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <span className="text-sm text-gray-500">
+                    {`${fretesFiltrados.length === 0 ? 0 : indiceInicio + 1}–${Math.min(indiceFim, fretesFiltrados.length)} de ${fretesFiltrados.length} registros`}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
+                      disabled={paginaAtual === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                      {`Página ${paginaAtual} de ${totalPaginas}`}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
+                      disabled={paginaAtual === totalPaginas}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
