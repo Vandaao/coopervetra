@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AuthGuard from "@/components/auth-guard"
 
@@ -779,49 +779,34 @@ export default function FretesPage() {
                 </div>
 
               {/* Controles de Paginação */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
-                <div className="text-sm text-gray-600">
-                  {`Mostrando ${fretesFiltrados.length === 0 ? 0 : indiceInicio + 1} a ${Math.min(indiceFim, fretesFiltrados.length)} de ${fretesFiltrados.length} fretes`}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
-                    disabled={paginaAtual === 1}
-                  >
-                    Anterior
-                  </Button>
-
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
-                      <Button
-                        key={pagina}
-                        variant={paginaAtual === pagina ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPaginaAtual(pagina)}
-                        className="w-10 h-10 p-0"
-                      >
-                        {pagina}
-                      </Button>
-                    ))}
+              {totalPaginas > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <span className="text-sm text-gray-500">
+                    {`${fretesFiltrados.length === 0 ? 0 : indiceInicio + 1}–${Math.min(indiceFim, fretesFiltrados.length)} de ${fretesFiltrados.length} registros`}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setPaginaAtual(Math.max(1, paginaAtual - 1))}
+                      disabled={paginaAtual === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                      {`Página ${paginaAtual} de ${totalPaginas}`}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
+                      disabled={paginaAtual === totalPaginas}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPaginaAtual(Math.min(totalPaginas, paginaAtual + 1))}
-                    disabled={paginaAtual === totalPaginas}
-                  >
-                    Próximo
-                  </Button>
                 </div>
-
-                <div className="text-sm text-gray-600">
-                  {`Página ${totalPaginas === 0 ? 0 : paginaAtual} de ${totalPaginas}`}
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
