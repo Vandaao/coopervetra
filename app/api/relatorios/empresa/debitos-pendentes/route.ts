@@ -45,39 +45,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ debitos_pendentes: [] })
     }
 
-    let debitosPendentes
-    if (hasStatus) {
-      debitosPendentes = await sql`
-        SELECT 
-          d.id,
-          d.cooperado_id,
-          c.nome as cooperado_nome,
-          d.descricao,
-          TO_CHAR(d.data, 'YYYY-MM-DD') as data,
-          d.valor
-        FROM debitos d
-        JOIN cooperados c ON d.cooperado_id = c.id
-        WHERE d.empresa_id = ${empresa_id}
-          AND d.data < ${data_inicio}::date
-          AND (d.status = 'pendente' OR d.status IS NULL)
-        ORDER BY c.nome, d.data
-      `
-    } else {
-      debitosPendentes = await sql`
-        SELECT 
-          d.id,
-          d.cooperado_id,
-          c.nome as cooperado_nome,
-          d.descricao,
-          TO_CHAR(d.data, 'YYYY-MM-DD') as data,
-          d.valor
-        FROM debitos d
-        JOIN cooperados c ON d.cooperado_id = c.id
-        WHERE d.empresa_id = ${empresa_id}
-          AND d.data < ${data_inicio}::date
-        ORDER BY c.nome, d.data
-      `
-    }
+    const debitosPendentes = await sql`
+      SELECT 
+        d.id,
+        d.cooperado_id,
+        c.nome as cooperado_nome,
+        d.descricao,
+        TO_CHAR(d.data, 'YYYY-MM-DD') as data,
+        d.valor
+      FROM debitos d
+      JOIN cooperados c ON d.cooperado_id = c.id
+      WHERE d.empresa_id = ${empresa_id}
+        AND d.data < ${data_inicio}::date
+        AND (d.status IS NULL OR d.status != 'pago')
+      ORDER BY c.nome, d.data
+    `
 
     return NextResponse.json({
       debitos_pendentes: debitosPendentes.map((d: Record<string, unknown>) => ({
