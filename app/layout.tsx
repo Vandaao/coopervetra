@@ -23,14 +23,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="flex h-screen bg-gray-50">
           {/* Sidebar */}
-          <div className="no-print">
-            <Sidebar />
-          </div>
+          <Sidebar />
 
           {/* Main Content */}
           <main className="flex-1 flex flex-col md:ml-64 overflow-auto">
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 sticky top-0 z-30 md:hidden no-print">
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-30 md:hidden">
               <div className="h-16" />
             </header>
 
@@ -40,7 +38,7 @@ export default function RootLayout({
             </div>
 
             {/* Footer */}
-            <footer className="bg-white border-t border-gray-200 text-center py-3 text-xs text-gray-500 mt-auto no-print">
+            <footer className="bg-white border-t border-gray-200 text-center py-3 text-xs text-gray-500 mt-auto">
               Grupo Modelo - Excelência que inspira confiança
             </footer>
           </main>
