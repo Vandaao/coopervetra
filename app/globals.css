@@ -59,12 +59,9 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
+@layer components {
+  .no-print {
+    @apply hidden;
   }
 }
 
@@ -140,5 +137,25 @@
   .print\:compact {
     margin: 0.2rem 0;
     padding: 0.2rem;
+  }
+
+  /* Ocultar navegação, sidebar e botões durante impressão */
+  nav,
+  aside,
+  .sidebar,
+  button:not([id*="pdf"]),
+  .header,
+  .footer,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Garantir que o conteúdo ocupe toda a largura */
+  main,
+  .main-content,
+  [role="main"] {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }
