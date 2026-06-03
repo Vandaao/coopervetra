@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       `
       console.log("[v0] Log de acesso registrado")
     } catch (logError) {
-      console.warn("[v0] Aviso: Não foi possível registrar log de acesso:", logError)
+      console.warn("[v0] Aviso: Não foi possível registrar log de acesso. Tabela pode não existir:", logError instanceof Error ? logError.message : logError)
       // Continua o login mesmo se o log falhar
     }
 

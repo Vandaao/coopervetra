@@ -85,6 +85,9 @@ export default function DebitosPage() {
   const [loadingPagamento, setLoadingPagamento] = useState(false)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [isExecutingMigration, setIsExecutingMigration] = useState(false)
+  const [duplicadosEncontrados, setDuplicadosEncontrados] = useState<Debito[]>([])
+  const [mostrarAlertaDuplicado, setMostrarAlertaDuplicado] = useState(false)
+  const [confirmarLancamentoDuplicado, setConfirmarLancamentoDuplicado] = useState(false)
   const { toast } = useToast()
 
   const executeMigration = async () => {
@@ -239,10 +242,51 @@ export default function DebitosPage() {
     setData("")
     setValor("")
     setEditingDebito(null)
+    setConfirmarLancamentoDuplicado(false)
+    setDuplicadosEncontrados([])
+  }
+
+  const verificarDuplicados = async (cooperado_id: string, empresa_id: string, data_lancamento: string, valor_lancamento: number) => {
+    try {
+      const response = await fetch("/api/debitos/check-duplicate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cooperado_id: Number.parseInt(cooperado_id),
+          empresa_id: Number.parseInt(empresa_id),
+          data: data_lancamento,
+          valor: valor_lancamento,
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.encontrados) {
+          setDuplicadosEncontrados(result.duplicados)
+          setMostrarAlertaDuplicado(true)
+          return true
+        }
+      }
+      return false
+    } catch (error) {
+      console.error("Erro ao verificar duplicados:", error)
+      return false
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Se não é edição e não foi confirmado lançamento duplicado, verificar duplicados
+    if (!editingDebito && !confirmarLancamentoDuplicado) {
+      const temDuplicados = await verificarDuplicados(cooperadoId, empresaId, data, Number.parseFloat(valor))
+      if (temDuplicados) {
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -967,6 +1011,67 @@ export default function DebitosPage() {
                           </Button>
                         </div>
                       </form>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Dialog de Alerta de Duplicados */}
+                  <Dialog open={mostrarAlertaDuplicado} onOpenChange={setMostrarAlertaDuplicado}>
+                    <DialogContent className="max-w-md mx-4">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-yellow-600">
+                          <AlertTriangle className="h-5 w-5" />
+                          Possível Lançamento Duplicado
+                        </DialogTitle>
+                        <DialogDescription>
+                          Encontramos débito(s) com a mesma data e valor para este cooperado.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {duplicadosEncontrados.map((debito) => (
+                          <div key={debito.id} className="p-3 border rounded-lg bg-yellow-50">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm">{debito.cooperado_nome}</p>
+                                <p className="text-xs text-gray-600">{debito.descricao}</p>
+                                <div className="flex gap-4 mt-1 text-xs text-gray-600">
+                                  <span>Data: {formatarData(debito.data)}</span>
+                                  <span>Valor: R$ {Number(debito.valor).toFixed(2)}</span>
+                                </div>
+                              </div>
+                              <Badge
+                                variant={debito.status === "pago" ? "default" : "destructive"}
+                                className="text-xs"
+                              >
+                                {debito.status === "pago" ? "Pago" : "Pendente"}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setConfirmarLancamentoDuplicado(true)
+                            setMostrarAlertaDuplicado(false)
+                            handleSubmit({ preventDefault: () => {} } as any)
+                          }}
+                          className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Lançar Mesmo Assim
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setMostrarAlertaDuplicado(false)
+                            setConfirmarLancamentoDuplicado(false)
+                          }}
+                          className="flex-1"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>
