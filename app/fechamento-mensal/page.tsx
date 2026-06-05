@@ -283,8 +283,6 @@ export default function FechamentoMensalPage() {
         for (const empresa of cooperado.empresas) {
           csv += `"${cooperado.cooperado_nome}";"${empresa.empresa_nome}";${empresa.total_fretes};"R$ ${empresa.valor_bruto.toFixed(2).replace(".", ",")}"\n`
         }
-        // Linha de subtotal do cooperado
-        csv += `"${cooperado.cooperado_nome} - SUBTOTAL";"";"";R$ ${cooperado.total_geral.toFixed(2).replace(".", ",")}\n`
       }
 
       // Linha de total geral
@@ -379,10 +377,6 @@ export default function FechamentoMensalPage() {
                 `,
                   )
                   .join("")}
-                <tr style="background-color: #f5f5f5; font-weight: bold;">
-                  <td colspan="3" style="border: 1px solid black; padding: 3px; text-align: right;">Subtotal ${cooperado.cooperado_nome.split(" ")[0]}:</td>
-                  <td style="border: 1px solid black; padding: 3px; text-align: right;">R$ ${cooperado.total_geral.toFixed(2)}</td>
-                </tr>
               `,
               )
               .join("")}
@@ -554,12 +548,6 @@ export default function FechamentoMensalPage() {
                               <TableCell className="text-right">R$ {empresa.valor_bruto.toFixed(2)}</TableCell>
                             </TableRow>
                           ))}
-                          <TableRow className="bg-gray-100 font-semibold">
-                            <TableCell colSpan={3} className="text-right">
-                              Subtotal {cooperado.cooperado_nome.split(" ")[0]}:
-                            </TableCell>
-                            <TableCell className="text-right">R$ {cooperado.total_geral.toFixed(2)}</TableCell>
-                          </TableRow>
                         </>
                       ))}
                       <TableRow className="bg-green-100 font-bold">
