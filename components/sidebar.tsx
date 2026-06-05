@@ -71,6 +71,7 @@ export function Sidebar() {
         { label: "Relatórios de Fretes", href: "/relatorios" },
         { label: "Relatórios por Empresa", href: "/relatorios-empresa" },
         { label: "Folha de Pagamento", href: "/folha-pagamento" },
+        { label: "Fechamento Mensal", href: "/fechamento-mensal" },
       ],
     },
     {
