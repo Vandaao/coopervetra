@@ -2,13 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calculator } from "lucide-react"
 
 interface CalculadoraProps {
@@ -151,8 +145,8 @@ export function Calculadora({ onAplicar }: CalculadoraProps) {
   ]
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
@@ -162,12 +156,10 @@ export function Calculadora({ onAplicar }: CalculadoraProps) {
         >
           <Calculator className="h-4 w-4" />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-xs">
-        <DialogHeader>
-          <DialogTitle>Calculadora</DialogTitle>
-        </DialogHeader>
+      </PopoverTrigger>
+      <PopoverContent className="w-64" align="end">
         <div className="space-y-4">
+          <div className="text-sm font-medium">Calculadora</div>
           <div className="rounded-md border bg-muted px-4 py-3 text-right text-2xl font-mono font-semibold overflow-x-auto">
             {display}
           </div>
@@ -247,7 +239,7 @@ export function Calculadora({ onAplicar }: CalculadoraProps) {
             Usar valor (R$ {Number.parseFloat(display).toFixed(2)})
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   )
 }
