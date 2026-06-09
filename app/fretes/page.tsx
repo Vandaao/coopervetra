@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AuthGuard from "@/components/auth-guard"
+import { Calculadora } from "@/components/calculadora"
 
 interface Cooperado {
   id: number
@@ -869,14 +870,17 @@ export default function FretesPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="valor">Valor (R$)</Label>
-                    <Input
-                      id="valor"
-                      type="number"
-                      step="0.01"
-                      value={valor}
-                      onChange={(e) => setValor(e.target.value)}
-                      required
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="valor"
+                        type="number"
+                        step="0.01"
+                        value={valor}
+                        onChange={(e) => setValor(e.target.value)}
+                        required
+                      />
+                      <Calculadora onAplicar={(v) => setValor(v)} />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="chapada">Chapada (R$)</Label>
