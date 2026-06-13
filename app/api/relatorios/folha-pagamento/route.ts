@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       WHERE f.empresa_id = ${empresa_id}
         AND f.data >= ${data_inicio}::date
         AND f.data <= ${data_fim}::date
+        AND (f.status IS NULL OR f.status = 'pendente')
       GROUP BY c.id, c.nome, c.conta_bancaria
       ORDER BY c.nome
     `
