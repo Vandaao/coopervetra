@@ -207,26 +207,59 @@ export default function FolhaPagamentoPage() {
       </div>
     `
 
-    const printWindow = window.open("", "", "height=800,width=1000")
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Folha de Pagamento - ${relatorio.empresa_nome}</title>
-            <style>
-              @page { size: A4; margin: 15mm; }
-              body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: black; }
-            </style>
-          </head>
-          <body>${html}</body>
-        </html>
-      `)
-      printWindow.document.close()
+    // Usa um iframe oculto para imprimir apenas o conteúdo do relatório.
+    // Diferente de window.open, não é afetado por bloqueadores de pop-up
+    // nem imprime a página inteira da aplicação.
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
 
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <html>
+        <head>
+          <title>Folha de Pagamento - ${relatorio.empresa_nome}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: black; }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `)
+    doc.close()
+
+    const acionarImpressao = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      // Remove o iframe após a impressão
       setTimeout(() => {
-        printWindow.focus()
-        printWindow.print()
-      }, 250)
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+    }
+
+    // Aguarda a logo carregar antes de imprimir
+    const logo = doc.querySelector("img")
+    if (logo && !logo.complete) {
+      logo.onload = acionarImpressao
+      logo.onerror = acionarImpressao
+      // Fallback caso o evento não dispare
+      setTimeout(acionarImpressao, 1500)
+    } else {
+      setTimeout(acionarImpressao, 300)
     }
   }
 
