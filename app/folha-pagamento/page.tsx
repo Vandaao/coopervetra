@@ -150,7 +150,7 @@ export default function FolhaPagamentoPage() {
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
             <td style="border: 1px solid black; padding: 8px;">${cooperado.cooperado_nome}</td>
             <td style="border: 1px solid black; padding: 8px; white-space: pre-wrap;">${cooperado.conta_bancaria || ""}</td>
-            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : ""}">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
           </tr>
         `,
       )
@@ -190,7 +190,7 @@ export default function FolhaPagamentoPage() {
           ${linhas}
           <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
             <td style="border: 2px solid black; padding: 8px;" colspan="2">TOTAL GERAL</td>
-            <td style="border: 2px solid black; padding: 8px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
+            <td style="border: 2px solid black; padding: 8px; text-align: right; ${relatorio.total_geral < 0 ? "color: #dc2626;" : ""}">R$ ${relatorio.total_geral.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
