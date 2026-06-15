@@ -1,6 +1,6 @@
 "use server"
 
-const SALT = process.env.PASSWORD_SALT || "coopervetra-salt-2025-secure"
+const SALT = process.env.PASSWORD_SALT || "coopervetra_salt"
 
 function isBase64(str: string): boolean {
   return /^[A-Za-z0-9+/]*={0,2}$/.test(str) && str.length % 4 === 0
