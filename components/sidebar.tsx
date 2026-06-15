@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Truck,
   Users,
@@ -12,20 +12,25 @@ import {
   Trophy,
   LogOut,
   Menu,
-  X,
   ChevronDown,
   Home,
   BarChart3,
-  DollarSign,
+  UserCog,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { clearSession, isAdmin } from "@/lib/session"
 
 export function Sidebar() {
   const pathname = usePathname()
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [admin, setAdmin] = useState(false)
+
+  useEffect(() => {
+    setAdmin(isAdmin())
+  }, [])
 
   const isActive = (href: string) => pathname === href
 
@@ -34,7 +39,7 @@ export function Sidebar() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("session")
+    clearSession()
     window.location.href = "/login"
   }
 
@@ -89,6 +94,15 @@ export function Sidebar() {
       href: "/backup",
       icon: Database,
     },
+    ...(admin
+      ? [
+          {
+            label: "Usuários",
+            href: "/usuarios",
+            icon: UserCog,
+          },
+        ]
+      : []),
   ]
 
   const SidebarContent = () => (
