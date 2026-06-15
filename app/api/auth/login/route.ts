@@ -83,17 +83,6 @@ export async function POST(request: NextRequest) {
 
     const token = createAuthToken(user.username)
 
-    try {
-      await sql`
-        INSERT INTO logs_acesso (usuario_id, username, ip, acao, sucesso)
-        VALUES (${user.id}, ${user.username}, ${clientIp}, 'login', true)
-      `
-      console.log("[v0] Log de acesso registrado")
-    } catch (logError) {
-      console.warn("[v0] Aviso: Não foi possível registrar log de acesso. Tabela pode não existir:", logError instanceof Error ? logError.message : logError)
-      // Continua o login mesmo se o log falhar
-    }
-
     console.log("[v0] Autenticação bem-sucedida:", user.username)
     return NextResponse.json({
       user: {
