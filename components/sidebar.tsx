@@ -40,7 +40,7 @@ export function Sidebar() {
 
   const handleLogout = () => {
     clearSession()
-    window.location.href = "/login"
+    window.location.href = "/home"
   }
 
   const menuItems = [
@@ -99,6 +99,11 @@ export function Sidebar() {
           {
             label: "Usuários",
             href: "/usuarios",
+            icon: UserCog,
+          },
+          {
+            label: "Novo Usuário",
+            href: "/usuarios/novo",
             icon: UserCog,
           },
         ]

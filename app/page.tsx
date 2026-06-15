@@ -1,9 +1,21 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { isAuthenticated } from "@/lib/session"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardOverview } from "@/components/dashboard-overview"
 
 export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Se não estiver autenticado, redirecionar para home
+    if (!isAuthenticated()) {
+      router.push("/home")
+    }
+  }, [router])
+
   return (
     <AuthGuard>
       <div className="space-y-6">
