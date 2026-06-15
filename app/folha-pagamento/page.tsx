@@ -142,7 +142,125 @@ export default function FolhaPagamentoPage() {
   }
 
   const handleImprimir = () => {
-    window.print()
+    if (!relatorio) return
+
+    const linhas = relatorio.cooperados
+      .map(
+        (cooperado, index) => `
+          <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
+            <td style="border: 1px solid black; padding: 8px;">${cooperado.cooperado_nome}</td>
+            <td style="border: 1px solid black; padding: 8px; white-space: pre-wrap;">${cooperado.conta_bancaria || ""}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : ""}">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+          </tr>
+        `,
+      )
+      .join("")
+
+    const html = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+          <div style="flex: 1; padding-right: 20px; text-align: left;">
+            <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; line-height: 1.2;">
+              COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
+            </h1>
+            <div style="font-size: 12px; line-height: 1.4;">
+              <p style="margin: 2px 0;">CNPJ: 05.332.862/0001-35</p>
+              <p style="margin: 2px 0;">AVENIDA DOUTOR JOSÉ NEVES, 415</p>
+              <p style="margin: 2px 0;">RIO POMBA - MG 36180-000</p>
+            </div>
+          </div>
+          <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" style="width: 120px; height: auto; object-fit: contain;" />
+        </div>
+        <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 10px; margin: 20px 0;">
+          <h2 style="font-size: 18px; font-weight: bold; margin: 0;">FOLHA DE PAGAMENTO</h2>
+          <p style="font-size: 16px; font-weight: bold; margin: 5px 0;">${relatorio.empresa_nome}</p>
+          <p style="font-size: 12px; margin: 0;">Período: ${formatarData(relatorio.data_inicio)} a ${formatarData(relatorio.data_fim)}</p>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: left;">COOPERADO</th>
+            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: left;">DADOS BANCÁRIOS</th>
+            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhas}
+          <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
+            <td style="border: 2px solid black; padding: 8px;" colspan="2">TOTAL GERAL</td>
+            <td style="border: 2px solid black; padding: 8px; text-align: right; ${relatorio.total_geral < 0 ? "color: #dc2626;" : ""}">R$ ${relatorio.total_geral.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+        <div style="text-align: center; width: 45%;">
+          <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
+          <p style="font-size: 10px;">RESPONSÁVEL DA EMPRESA</p>
+        </div>
+        <div style="text-align: center; width: 45%;">
+          <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
+          <p style="font-size: 10px;">FILIPE BENTO COSTA (PRESIDENTE)</p>
+        </div>
+      </div>
+    `
+
+    // Usa um iframe oculto para imprimir apenas o conteúdo do relatório.
+    // Diferente de window.open, não é afetado por bloqueadores de pop-up
+    // nem imprime a página inteira da aplicação.
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <html>
+        <head>
+          <title>Folha de Pagamento - ${relatorio.empresa_nome}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: black; }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `)
+    doc.close()
+
+    const acionarImpressao = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      // Remove o iframe após a impressão
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+    }
+
+    // Aguarda a logo carregar antes de imprimir
+    const logo = doc.querySelector("img")
+    if (logo && !logo.complete) {
+      logo.onload = acionarImpressao
+      logo.onerror = acionarImpressao
+      // Fallback caso o evento não dispare
+      setTimeout(acionarImpressao, 1500)
+    } else {
+      setTimeout(acionarImpressao, 300)
+    }
   }
 
   const formatarData = (dataString: string) => {
@@ -159,7 +277,7 @@ export default function FolhaPagamentoPage() {
         <header className="bg-white shadow-sm border-b print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center py-6">
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="mr-4">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar
@@ -266,14 +384,14 @@ export default function FolhaPagamentoPage() {
                           <TableCell className="max-w-xs">
                             <div className="text-sm whitespace-pre-wrap">{cooperado.conta_bancaria}</div>
                           </TableCell>
-                          <TableCell className="font-bold text-green-600">
+                          <TableCell className={`font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
                             R$ {cooperado.valor_liquido.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-gray-50 font-bold text-lg">
                         <TableCell colSpan={2}>TOTAL GERAL</TableCell>
-                        <TableCell className="text-green-600">R$ {relatorio.total_geral.toFixed(2)}</TableCell>
+                        <TableCell className={relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -330,7 +448,7 @@ export default function FolhaPagamentoPage() {
                           <td className="border border-black p-3 text-sm whitespace-pre-wrap">
                             {cooperado.conta_bancaria}
                           </td>
-                          <td className="border border-black p-3 text-right font-bold">
+                          <td className="border border-black p-3 text-right font-bold" style={cooperado.valor_liquido < 0 ? { color: "#dc2626" } : {}}>
                             R$ {cooperado.valor_liquido.toFixed(2)}
                           </td>
                         </tr>
@@ -339,7 +457,7 @@ export default function FolhaPagamentoPage() {
                         <td className="border-2 border-black p-3" colSpan={2}>
                           TOTAL GERAL
                         </td>
-                        <td className="border-2 border-black p-3 text-right">R$ {relatorio.total_geral.toFixed(2)}</td>
+                        <td className="border-2 border-black p-3 text-right font-bold" style={relatorio.total_geral < 0 ? { color: "#dc2626" } : {}}>R$ {relatorio.total_geral.toFixed(2)}</td>
                       </tr>
                     </tbody>
                   </table>

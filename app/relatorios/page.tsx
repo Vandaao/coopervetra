@@ -179,7 +179,217 @@ export default function RelatoriosPage() {
   }
 
   const handleImprimir = () => {
-    window.print()
+    if (!relatorio) return
+
+    const linhasFretes = relatorio.fretes
+      .map(
+        (frete) => `
+          <tr style="border-bottom: 1px solid #ccc;">
+            <td style="padding: 6px 4px;">${formatarData(frete.data)}</td>
+            <td style="padding: 6px 4px;">${frete.carga}</td>
+            <td style="padding: 6px 4px;">${frete.km}</td>
+            <td style="padding: 6px 4px;">R$ ${frete.valor.toFixed(2)}</td>
+            <td style="padding: 6px 4px;">R$ ${frete.chapada.toFixed(2)}</td>
+            <td style="padding: 6px 4px;">${frete.empresa_nome}</td>
+          </tr>
+        `,
+      )
+      .join("")
+
+    const linhasVaziasFretes = Array.from({ length: Math.max(0, 6 - relatorio.fretes.length) })
+      .map(
+        () => `
+          <tr style="border-bottom: 1px solid #ccc;">
+            <td style="padding: 6px 4px;">&nbsp;</td>
+            <td style="padding: 6px 4px;">&nbsp;</td>
+            <td style="padding: 6px 4px;">&nbsp;</td>
+            <td style="padding: 6px 4px;">&nbsp;</td>
+            <td style="padding: 6px 4px;">&nbsp;</td>
+            <td style="padding: 6px 4px;">&nbsp;</td>
+          </tr>
+        `,
+      )
+      .join("")
+
+    const secaoDebitos =
+      relatorio.debitos.length > 0
+        ? `
+          <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">DÉBITOS NO PERÍODO</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid black;">
+                  <th style="text-align: left; padding: 6px 4px; font-weight: bold;">Data</th>
+                  <th style="text-align: left; padding: 6px 4px; font-weight: bold;">DESCRIÇÃO</th>
+                  <th style="text-align: left; padding: 6px 4px; font-weight: bold;">VALOR</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${relatorio.debitos
+                  .map(
+                    (debito) => `
+                      <tr style="border-bottom: 1px solid #ccc;">
+                        <td style="padding: 6px 4px;">${formatarData(debito.data)}</td>
+                        <td style="padding: 6px 4px;">${debito.descricao}</td>
+                        <td style="padding: 6px 4px;">R$ ${debito.valor.toFixed(2)}</td>
+                      </tr>
+                    `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+        : ""
+
+    const linhaDebitos =
+      relatorio.total_debitos > 0
+        ? `
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: bold;">DÉBITOS:</span>
+            <span style="font-weight: bold; color: #dc2626;">R$ ${relatorio.total_debitos.toFixed(2)}</span>
+          </div>
+        `
+        : ""
+
+    const html = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div style="flex: 1; padding-right: 16px; text-align: left;">
+            <h1 style="font-size: 16px; font-weight: bold; margin-bottom: 8px; line-height: 1.2;">
+              COOPERATIVA DE TRANSPORTADORES AUTÔNOMOS DE RIO POMBA E REGIÃO
+            </h1>
+            <div style="font-size: 12px; line-height: 1.4;">
+              <p style="margin: 2px 0;">CNPJ: 05.332.862/0001-35</p>
+              <p style="margin: 2px 0;">AVENIDA DOUTOR JOSÉ NEVES, 415</p>
+              <p style="margin: 2px 0;">RIO POMBA - MG 36180-000</p>
+            </div>
+          </div>
+          <img src="/logo-coopervetra.jpg" alt="Logo COOPERVETRA" style="width: 120px; height: auto; object-fit: contain;" />
+        </div>
+        <div style="border-top: 2px solid black; border-bottom: 2px solid black; padding: 8px 0; margin: 16px 0;">
+          <h2 style="font-size: 18px; font-weight: bold; margin: 0;">RELATÓRIO DE FRETES SEMANAIS</h2>
+          ${relatorio.empresa_nome ? `<p style="font-size: 14px; font-weight: 600; margin: 4px 0 0;">Empresa: ${relatorio.empresa_nome}</p>` : ""}
+          <p style="font-size: 12px; margin: 4px 0 0;">Período: ${formatarData(dataInicio)} a ${formatarData(dataFim)}</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 16px; font-weight: bold;">NOME: ${relatorio.cooperado_nome}</p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid black;">
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">Data</th>
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">CARGA</th>
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">KM</th>
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">VALOR</th>
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">CHAPADA</th>
+              <th style="text-align: left; padding: 6px 4px; font-weight: bold;">EMPRESA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasFretes}
+            ${linhasVaziasFretes}
+          </tbody>
+        </table>
+      </div>
+
+      ${secaoDebitos}
+
+      <div style="border-top: 1px dashed black; margin-bottom: 16px;"></div>
+
+      <div style="display: flex; justify-content: space-between; margin-bottom: 24px; gap: 32px;">
+        <div>
+          <p style="font-weight: bold;">TOTAL DE KM NO PERÍODO: ${relatorio.total_km}</p>
+        </div>
+        <div style="min-width: 280px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: bold;">VALOR TOTAL FRETES:</span>
+            <span style="font-weight: bold;">R$ ${relatorio.valor_bruto.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: bold;">DESCONTO ADM 6%:</span>
+            <span style="font-weight: bold; color: #dc2626;">R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: bold;">DESCONTO INSS 4,5%:</span>
+            <span style="font-weight: bold; color: #dc2626;">R$ ${relatorio.desconto_inss.toFixed(2)}</span>
+          </div>
+          ${linhaDebitos}
+        </div>
+      </div>
+
+      <div style="border-top: 1px dashed black; margin-bottom: 16px;"></div>
+
+      <div style="text-align: right; margin-bottom: 40px;">
+        <p style="font-size: 20px; font-weight: bold;">TOTAL GERAL: R$ ${relatorio.valor_liquido.toFixed(2)}</p>
+      </div>
+
+      <div style="margin-top: 60px; display: flex; justify-content: space-between; gap: 64px;">
+        <div style="text-align: center; flex: 1;">
+          <div style="border-top: 1px solid black; margin-bottom: 8px;"></div>
+          <p style="font-size: 12px;">${relatorio.cooperado_nome}</p>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <div style="border-top: 1px solid black; margin-bottom: 8px;"></div>
+          <p style="font-size: 12px;">FILIPE BENTO COSTA (PRESIDENTE)</p>
+        </div>
+      </div>
+    `
+
+    // Usa um iframe oculto para imprimir apenas o conteúdo do relatório.
+    // Diferente de window.print(), não imprime a página inteira da aplicação.
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <html>
+        <head>
+          <title>Relatório de Fretes - ${relatorio.cooperado_nome}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: black; }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `)
+    doc.close()
+
+    const acionarImpressao = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+    }
+
+    const logo = doc.querySelector("img")
+    if (logo && !logo.complete) {
+      logo.onload = acionarImpressao
+      logo.onerror = acionarImpressao
+      setTimeout(acionarImpressao, 1500)
+    } else {
+      setTimeout(acionarImpressao, 300)
+    }
   }
 
   const formatarData = (dataString: string) => {
@@ -197,7 +407,7 @@ export default function RelatoriosPage() {
       <header className="bg-white shadow-sm border-b print:hidden">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-6">
-            <Link href="/">
+            <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="mr-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar

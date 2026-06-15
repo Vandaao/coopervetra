@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Truck,
   Users,
@@ -12,20 +12,25 @@ import {
   Trophy,
   LogOut,
   Menu,
-  X,
   ChevronDown,
   Home,
   BarChart3,
-  DollarSign,
+  UserCog,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { clearSession, isAdmin } from "@/lib/session"
 
 export function Sidebar() {
   const pathname = usePathname()
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [admin, setAdmin] = useState(false)
+
+  useEffect(() => {
+    setAdmin(isAdmin())
+  }, [])
 
   const isActive = (href: string) => pathname === href
 
@@ -34,14 +39,14 @@ export function Sidebar() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("session")
-    window.location.href = "/login"
+    clearSession()
+    window.location.href = "/"
   }
 
   const menuItems = [
     {
       label: "Início",
-      href: "/",
+      href: "/dashboard",
       icon: Home,
     },
     {
@@ -89,12 +94,26 @@ export function Sidebar() {
       href: "/backup",
       icon: Database,
     },
+    ...(admin
+      ? [
+          {
+            label: "Usuários",
+            href: "/usuarios",
+            icon: UserCog,
+          },
+          {
+            label: "Novo Usuário",
+            href: "/usuarios/novo",
+            icon: UserCog,
+          },
+        ]
+      : []),
   ]
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-6 border-b">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <Truck className="h-6 w-6 text-blue-600" />
           <span className="font-bold text-lg text-gray-900">Coopervetra</span>
         </Link>

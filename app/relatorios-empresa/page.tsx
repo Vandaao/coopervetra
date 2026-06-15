@@ -303,7 +303,7 @@ export default function RelatoriosEmpresaPage() {
         <header className="bg-white shadow-sm border-b print:hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center py-6">
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="mr-4">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar

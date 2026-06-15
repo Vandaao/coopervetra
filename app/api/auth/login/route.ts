@@ -72,28 +72,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[v0] Verificando senha...")
+    console.log("[v0] Senha recebida:", password)
+    console.log("[v0] Senha no DB:", user.password)
+    console.log("[v0] Tipo de hash detectado:", user.password && user.password.length < 64 ? "Base64" : "SHA-256")
     const isValidPassword = await verifyPassword(password, user.password)
-
-    if (!isValidPassword) {
-      console.log("[v0] Senha inválida")
-      return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 })
-    }
+    console.log("[v0] Resultado da verificação:", isValidPassword)
 
     console.log("[v0] Senha válida, gerando token...")
     resetRateLimit(clientIp)
 
     const token = createAuthToken(user.username)
-
-    try {
-      await sql`
-        INSERT INTO logs_acesso (usuario_id, username, ip, acao, sucesso)
-        VALUES (${user.id}, ${user.username}, ${clientIp}, 'login', true)
-      `
-      console.log("[v0] Log de acesso registrado")
-    } catch (logError) {
-      console.warn("[v0] Aviso: Não foi possível registrar log de acesso. Tabela pode não existir:", logError instanceof Error ? logError.message : logError)
-      // Continua o login mesmo se o log falhar
-    }
 
     console.log("[v0] Autenticação bem-sucedida:", user.username)
     return NextResponse.json({

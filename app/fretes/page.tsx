@@ -551,7 +551,7 @@ export default function FretesPage() {
           <div className="w-full px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-6">
               <div className="flex items-center">
-                <Link href="/">
+                <Link href="/dashboard">
                   <Button variant="ghost" size="sm" className="mr-4">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Voltar
