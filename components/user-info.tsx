@@ -19,7 +19,7 @@ export function UserInfo() {
 
   const handleLogout = () => {
     clearSession()
-    router.push("/login")
+    router.push("/")
   }
 
   if (!user) return null

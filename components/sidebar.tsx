@@ -40,13 +40,13 @@ export function Sidebar() {
 
   const handleLogout = () => {
     clearSession()
-    window.location.href = "/home"
+    window.location.href = "/"
   }
 
   const menuItems = [
     {
       label: "Início",
-      href: "/",
+      href: "/dashboard",
       icon: Home,
     },
     {
@@ -113,7 +113,7 @@ export function Sidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-6 border-b">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <Truck className="h-6 w-6 text-blue-600" />
           <span className="font-bold text-lg text-gray-900">Coopervetra</span>
         </Link>

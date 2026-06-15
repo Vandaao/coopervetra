@@ -19,14 +19,14 @@ export function AuthGuard({ children, requireAdmin = false }: AuthGuardProps) {
   useEffect(() => {
     const checkAuth = () => {
       if (!isAuthenticated()) {
-        router.push("/login")
+        router.push("/")
         return
       }
 
       if (requireAdmin) {
         const user = getSession()
         if (user?.tipo !== "admin") {
-          router.push("/")
+          router.push("/dashboard")
           return
         }
       }

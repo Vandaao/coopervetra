@@ -21,9 +21,9 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Se já estiver logado, redirecionar para home
+    // Se já estiver logado, redirecionar para o dashboard
     if (isAuthenticated()) {
-      router.push("/")
+      router.push("/dashboard")
     }
   }, [router])
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
           title: "Sucesso",
           description: `Bem-vindo, ${data.user.nome}!`,
         })
-        router.push("/")
+        router.push("/dashboard")
       } else {
         console.log("Login falhou:", data.error)
         toast({
