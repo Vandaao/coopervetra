@@ -384,14 +384,14 @@ export default function FolhaPagamentoPage() {
                           <TableCell className="max-w-xs">
                             <div className="text-sm whitespace-pre-wrap">{cooperado.conta_bancaria}</div>
                           </TableCell>
-                          <TableCell className="font-bold text-green-600">
+                          <TableCell className={`font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
                             R$ {cooperado.valor_liquido.toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-gray-50 font-bold text-lg">
                         <TableCell colSpan={2}>TOTAL GERAL</TableCell>
-                        <TableCell className="text-green-600">R$ {relatorio.total_geral.toFixed(2)}</TableCell>
+                        <TableCell className={relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -448,7 +448,7 @@ export default function FolhaPagamentoPage() {
                           <td className="border border-black p-3 text-sm whitespace-pre-wrap">
                             {cooperado.conta_bancaria}
                           </td>
-                          <td className="border border-black p-3 text-right font-bold">
+                          <td className="border border-black p-3 text-right font-bold" style={cooperado.valor_liquido < 0 ? "color: #dc2626;" : ""}>
                             R$ {cooperado.valor_liquido.toFixed(2)}
                           </td>
                         </tr>
@@ -457,7 +457,7 @@ export default function FolhaPagamentoPage() {
                         <td className="border-2 border-black p-3" colSpan={2}>
                           TOTAL GERAL
                         </td>
-                        <td className="border-2 border-black p-3 text-right">R$ {relatorio.total_geral.toFixed(2)}</td>
+                        <td className="border-2 border-black p-3 text-right" style={relatorio.total_geral < 0 ? "color: #dc2626; font-weight: bold;" : "font-weight: bold;"}>R$ {relatorio.total_geral.toFixed(2)}</td>
                       </tr>
                     </tbody>
                   </table>
