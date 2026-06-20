@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
           AND f.empresa_id = ${empresa_id}
           AND f.data >= ${data_inicio}::date
           AND f.data <= ${data_fim}::date
+          AND (f.status IS NULL OR f.status != 'pago')
         ORDER BY f.data
       `
     } else {
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
         WHERE f.cooperado_id = ${cooperado_id}
           AND f.data >= ${data_inicio}::date
           AND f.data <= ${data_fim}::date
+          AND (f.status IS NULL OR f.status != 'pago')
         ORDER BY f.data
       `
     }
