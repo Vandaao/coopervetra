@@ -629,8 +629,6 @@ export default function DebitosPage() {
   }
 
   const handleImprimirRelatorio = () => {
-    if (!relatorioRef.current) return
-
     const formatarData = (dataString: string | null) => {
       if (!dataString) return "-"
       if (dataString.includes("-") && dataString.length === 10) {
@@ -640,7 +638,73 @@ export default function DebitosPage() {
       return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
     }
 
-    // Gerar HTML do relatório
+    // Agrupar débitos por cooperado
+    const debitosAgrupados = debitosFiltrados.reduce(
+      (acc, debito) => {
+        const cooperadoKey = debito.cooperado_nome
+        if (!acc[cooperadoKey]) {
+          acc[cooperadoKey] = []
+        }
+        acc[cooperadoKey].push(debito)
+        return acc
+      },
+      {} as Record<string, typeof debitosFiltrados>,
+    )
+
+    // Gerar HTML do relatório agrupado por cooperado
+    const debitosAggrupadosHtml = Object.entries(debitosAgrupados)
+      .map(([cooperadoNome, debitos]) => {
+        const totalCooperado = debitos.reduce((sum, d) => sum + d.valor, 0)
+        const pendentesCooperado = debitos.filter((d) => d.status === "pendente").length
+        const valorPendenteCooperado = debitos
+          .filter((d) => d.status === "pendente")
+          .reduce((sum, d) => sum + d.valor, 0)
+
+        return `
+          <div style="margin-bottom: 40px; page-break-inside: avoid;">
+            <div style="border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 15px;">
+              <h2 style="font-size: 14px; font-weight: bold; margin: 0;">COOPERADO: ${cooperadoNome}</h2>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <tr style="background-color: #f0f0f0; border-bottom: 2px solid black;">
+                <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data</th>
+                <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Descrição</th>
+                <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
+                <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
+              </tr>
+              ${debitos
+                .map(
+                  (debito) => `
+                <tr style="border-bottom: 1px solid #ccc;">
+                  <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(debito.data)}</td>
+                  <td style="border: 1px solid #ccc; padding: 8px;">${debito.descricao}</td>
+                  <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${debito.valor.toFixed(2)}</td>
+                  <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${debito.status === "pago" ? "color: green;" : "color: red;"}">${debito.status === "pago" ? "Pago" : "Pendente"}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+              <tr style="background-color: #e8e8e8; font-weight: bold; border-top: 2px solid black;">
+                <td colspan="2" style="border: 1px solid #ccc; padding: 10px; text-align: right;">TOTAIS:</td>
+                <td style="border: 1px solid #ccc; padding: 10px; text-align: right;">R$ ${totalCooperado.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 10px; text-align: center;">${pendentesCooperado}</td>
+              </tr>
+            </table>
+
+            <div style="display: flex; gap: 30px; font-size: 12px;">
+              <div>
+                <p style="margin: 0;">Débitos Pendentes: <strong>${pendentesCooperado}</strong></p>
+              </div>
+              <div>
+                <p style="margin: 0;">Valor Pendente: <strong style="color: #dc2626;">R$ ${valorPendenteCooperado.toFixed(2)}</strong></p>
+              </div>
+            </div>
+          </div>
+        `
+      })
+      .join("")
+
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -655,38 +719,12 @@ export default function DebitosPage() {
                   ? `Até: ${formatarData(filtroDataFim)}`
                   : "Todos os períodos"}
           </p>
-          ${filtroCooperado !== "todos" ? `<p style="font-size: 12px; color: #666;">Cooperado: ${filtroCooperado}</p>` : ""}
-          ${filtroEmpresa !== "todos" ? `<p style="font-size: 12px; color: #666;">Empresa: ${filtroEmpresa}</p>` : ""}
-          ${filtroStatus !== "todos" ? `<p style="font-size: 12px; color: #666;">Status: ${filtroStatus === "pago" ? "Pagos" : "Pendentes"}</p>` : ""}
           <p style="font-size: 11px; color: #999; margin-top: 10px;">Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
         </div>
 
-        <div style="margin-bottom: 30px;">
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <tr style="background-color: #f0f0f0; border-bottom: 2px solid black;">
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cooperado</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Descrição</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
-            </tr>
-            ${debitosFiltrados
-              .map(
-                (debito) => `
-              <tr style="border-bottom: 1px solid #ccc;">
-                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(debito.data)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${debito.cooperado_nome}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${debito.descricao}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${debito.valor.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${debito.status === "pago" ? "color: green;" : "color: red;"}">${debito.status === "pago" ? "Pago" : "Pendente"}</td>
-              </tr>
-            `,
-              )
-              .join("")}
-          </table>
-        </div>
+        ${debitosAggrupadosHtml}
 
-        <div style="border-top: 2px solid black; padding-top: 20px;">
+        <div style="border-top: 2px solid black; padding-top: 20px; margin-top: 30px;">
           <div style="display: flex; justify-content: flex-end; gap: 40px;">
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Total de Débitos:</p>
