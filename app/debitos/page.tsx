@@ -666,7 +666,6 @@ export default function DebitosPage() {
             <tr style="background-color: #f0f0f0; border-bottom: 2px solid black;">
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cooperado</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Empresa</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Descrição</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
@@ -677,7 +676,6 @@ export default function DebitosPage() {
               <tr style="border-bottom: 1px solid #ccc;">
                 <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(debito.data)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${debito.cooperado_nome}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${debito.empresa_nome}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${debito.descricao}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${debito.valor.toFixed(2)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${debito.status === "pago" ? "color: green;" : "color: red;"}">${debito.status === "pago" ? "Pago" : "Pendente"}</td>
