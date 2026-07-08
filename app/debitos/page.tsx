@@ -629,7 +629,130 @@ export default function DebitosPage() {
   }
 
   const handleImprimirRelatorio = () => {
-    window.print()
+    if (!relatorioRef.current) return
+
+    const formatarData = (dataString: string | null) => {
+      if (!dataString) return "-"
+      if (dataString.includes("-") && dataString.length === 10) {
+        const [ano, mes, dia] = dataString.split("-")
+        return `${dia}/${mes}/${ano}`
+      }
+      return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+    }
+
+    // Gerar HTML do relatório
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">COOPERVETRA</h1>
+          <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">Relatório de Débitos</h2>
+          <p style="font-size: 12px; color: #666; margin-bottom: 5px;">
+            ${filtroDataInicio && filtroDataFim
+              ? `Período: ${formatarData(filtroDataInicio)} a ${formatarData(filtroDataFim)}`
+              : filtroDataInicio
+                ? `A partir de: ${formatarData(filtroDataInicio)}`
+                : filtroDataFim
+                  ? `Até: ${formatarData(filtroDataFim)}`
+                  : "Todos os períodos"}
+          </p>
+          ${filtroCooperado !== "todos" ? `<p style="font-size: 12px; color: #666;">Cooperado: ${filtroCooperado}</p>` : ""}
+          ${filtroEmpresa !== "todos" ? `<p style="font-size: 12px; color: #666;">Empresa: ${filtroEmpresa}</p>` : ""}
+          ${filtroStatus !== "todos" ? `<p style="font-size: 12px; color: #666;">Status: ${filtroStatus === "pago" ? "Pagos" : "Pendentes"}</p>` : ""}
+          <p style="font-size: 11px; color: #999; margin-top: 10px;">Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr style="background-color: #f0f0f0; border-bottom: 2px solid black;">
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cooperado</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Empresa</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Descrição</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
+            </tr>
+            ${debitosFiltrados
+              .map(
+                (debito) => `
+              <tr style="border-bottom: 1px solid #ccc;">
+                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(debito.data)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${debito.cooperado_nome}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${debito.empresa_nome}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${debito.descricao}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${debito.valor.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${debito.status === "pago" ? "color: green;" : "color: red;"}">${debito.status === "pago" ? "Pago" : "Pendente"}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </table>
+        </div>
+
+        <div style="border-top: 2px solid black; padding-top: 20px;">
+          <div style="display: flex; justify-content: flex-end; gap: 40px;">
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Total de Débitos:</p>
+              <p style="font-size: 14px; font-weight: bold;">${debitosFiltrados.length}</p>
+            </div>
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Pendentes:</p>
+              <p style="font-size: 14px; font-weight: bold; color: #dc2626;">${totalFiltradosPendentes}</p>
+            </div>
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Valor Pendente:</p>
+              <p style="font-size: 14px; font-weight: bold; color: #dc2626;">R$ ${valorFiltradoPendente.toFixed(2)}</p>
+            </div>
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Valor Total:</p>
+              <p style="font-size: 14px; font-weight: bold;">R$ ${valorFiltradoTotal.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    // Criar iframe oculto
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <html>
+        <head>
+          <title>Relatório de Débitos</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `)
+    doc.close()
+
+    const acionarImpressao = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+    }
+
+    setTimeout(acionarImpressao, 300)
   }
 
   const handleFecharRelatorio = () => {
