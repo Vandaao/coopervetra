@@ -16,6 +16,7 @@ import {
   Home,
   BarChart3,
   UserCog,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -68,6 +69,11 @@ export function Sidebar() {
       label: "Débitos",
       href: "/debitos",
       icon: Receipt,
+    },
+    {
+      label: "Faturamento",
+      href: "/faturamento",
+      icon: FileText,
     },
     {
       label: "Relatórios",
