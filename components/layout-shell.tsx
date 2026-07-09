@@ -40,3 +40,5 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+export default LayoutShell
