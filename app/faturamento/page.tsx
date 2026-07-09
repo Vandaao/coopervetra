@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Edit, Trash2 } from "lucide-react"
+import { Plus, Edit, Trash2, Printer } from "lucide-react"
 import LayoutShell from "@/components/layout-shell"
 
 interface Faturamento {
@@ -172,6 +172,124 @@ export default function FaturamentoPage() {
     return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
   }
 
+  const handleImprimirRelatorio = () => {
+    const formatarData = (dataString: string | null) => {
+      if (!dataString) return "-"
+      if (dataString.includes("-") && dataString.length === 10) {
+        const [ano, mes, dia] = dataString.split("-")
+        return `${dia}/${mes}/${ano}`
+      }
+      return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
+    }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">COOPERVETRA</h1>
+          <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">Relatório de Faturamento</h2>
+          <p style="font-size: 12px; color: #666; margin-bottom: 5px;">
+            ${filtroDataInicio && filtroDataFim
+              ? `Período: ${formatarData(filtroDataInicio)} a ${formatarData(filtroDataFim)}`
+              : filtroDataInicio
+                ? `A partir de: ${formatarData(filtroDataInicio)}`
+                : filtroDataFim
+                  ? `Até: ${formatarData(filtroDataFim)}`
+                  : "Todos os períodos"}
+          </p>
+          ${filtroStatus !== "todos" ? `<p style="font-size: 12px; color: #666;">Status: ${filtroStatus === "pago" ? "Pagos" : filtroStatus === "pendente" ? "Pendentes" : "Cancelados"}</p>` : ""}
+          <p style="font-size: 11px; color: #999; margin-top: 10px;">Gerado em: ${new Date().toLocaleString("pt-BR")}</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr style="background-color: #f0f0f0; border-bottom: 2px solid black;">
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cliente</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Documento Ref.</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Emissão</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Vencimento</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
+              <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
+            </tr>
+            ${faturamentos
+              .map(
+                (fat) => `
+              <tr style="border-bottom: 1px solid #ccc;">
+                <td style="border: 1px solid #ccc; padding: 8px;">${fat.cliente}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${fat.documento_referencia || "-"}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_emissao)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${fat.valor.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${fat.status === "pago" ? "color: green;" : fat.status === "pendente" ? "color: orange;" : "color: red;"}">${fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado"}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </table>
+        </div>
+
+        <div style="border-top: 2px solid black; padding-top: 20px;">
+          <div style="display: flex; justify-content: flex-end; gap: 40px;">
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Total Faturado:</p>
+              <p style="font-size: 14px; font-weight: bold;">R$ ${totalFaturado.toFixed(2)}</p>
+            </div>
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Pendente:</p>
+              <p style="font-size: 14px; font-weight: bold; color: #f59e0b;">R$ ${totalPendente.toFixed(2)}</p>
+            </div>
+            <div>
+              <p style="font-size: 12px; margin-bottom: 5px;">Recebido:</p>
+              <p style="font-size: 14px; font-weight: bold; color: #10b981;">R$ ${totalPago.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    // Criar iframe oculto
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <html>
+        <head>
+          <title>Relatório de Faturamento</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+          </style>
+        </head>
+        <body>${html}</body>
+      </html>
+    `)
+    doc.close()
+
+    const acionarImpressao = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+    }
+
+    setTimeout(acionarImpressao, 300)
+  }
+
   const totalFaturado = faturamentos.reduce((sum, f) => sum + f.valor, 0)
   const totalPendente = faturamentos
     .filter((f) => f.status === "pendente")
@@ -188,25 +306,30 @@ export default function FaturamentoPage() {
             <h1 className="text-3xl font-bold">Faturamento</h1>
             <p className="text-gray-600 mt-1">Gerenciar boletos e lançamentos</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingId(null)
-                  setFormData({
-                    cliente: "",
-                    documento_referencia: "",
-                    data_emissao: "",
-                    data_vencimento: "",
-                    valor: "",
-                    status: "pendente",
-                  })
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Faturamento
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleImprimirRelatorio}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir Relatório
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setEditingId(null)
+                    setFormData({
+                      cliente: "",
+                      documento_referencia: "",
+                      data_emissao: "",
+                      data_vencimento: "",
+                      valor: "",
+                      status: "pendente",
+                    })
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Faturamento
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
@@ -323,7 +446,8 @@ export default function FaturamentoPage() {
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Filtros */}
