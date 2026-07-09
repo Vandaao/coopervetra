@@ -8,27 +8,62 @@ export async function GET(request: NextRequest) {
     const dataInicio = searchParams.get("dataInicio")
     const dataFim = searchParams.get("dataFim")
 
-    let query = "SELECT * FROM faturamento WHERE 1=1"
-    const params: (string | null)[] = []
+    let result
 
-    if (status && status !== "todos") {
-      query += " AND status = $1"
-      params.push(status)
+    if (status && dataInicio && dataFim) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE status = ${status}
+          AND data_emissao >= ${dataInicio}::date
+          AND data_emissao <= ${dataFim}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else if (status && dataInicio) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE status = ${status}
+          AND data_emissao >= ${dataInicio}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else if (status && dataFim) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE status = ${status}
+          AND data_emissao <= ${dataFim}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else if (status) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE status = ${status}
+        ORDER BY data_vencimento DESC
+      `
+    } else if (dataInicio && dataFim) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE data_emissao >= ${dataInicio}::date
+          AND data_emissao <= ${dataFim}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else if (dataInicio) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE data_emissao >= ${dataInicio}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else if (dataFim) {
+      result = await sql`
+        SELECT * FROM faturamento 
+        WHERE data_emissao <= ${dataFim}::date
+        ORDER BY data_vencimento DESC
+      `
+    } else {
+      result = await sql`
+        SELECT * FROM faturamento 
+        ORDER BY data_vencimento DESC
+      `
     }
 
-    if (dataInicio) {
-      query += ` AND data_emissao >= $${params.length + 1}::date`
-      params.push(dataInicio)
-    }
-
-    if (dataFim) {
-      query += ` AND data_emissao <= $${params.length + 1}::date`
-      params.push(dataFim)
-    }
-
-    query += " ORDER BY data_vencimento DESC"
-
-    const result = await sql.query(query, params.filter((p) => p !== null))
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Erro ao buscar faturamento:", error)

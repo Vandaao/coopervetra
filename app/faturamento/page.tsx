@@ -78,10 +78,14 @@ export default function FaturamentoPage() {
       }
 
       const response = await fetch(`/api/faturamento?${params}`)
+      if (!response.ok) {
+        throw new Error(`Erro na API: ${response.status}`)
+      }
       const data = await response.json()
-      setFaturamentos(data)
+      setFaturamentos(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erro ao carregar faturamentos:", error)
+      setFaturamentos([])
     } finally {
       setLoading(false)
     }
