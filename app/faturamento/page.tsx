@@ -350,7 +350,7 @@ export default function FaturamentoPage() {
 
   return (
     <LayoutShell>
-      <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Faturamento</h1>
@@ -623,8 +623,8 @@ export default function FaturamentoPage() {
           ) : faturamentos.length === 0 ? (
             <p className="text-center text-gray-500">Nenhum faturamento encontrado</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
