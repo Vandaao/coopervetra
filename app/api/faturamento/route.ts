@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   try {
     await initializeTable()
     const body = await request.json()
-    const { cliente_id, documento_referencia, data_emissao, data_vencimento, valor } = body
+    const { cliente_id, documento_referencia, data_emissao, data_vencimento, valor, observacao } = body
 
     if (!cliente_id || !data_emissao || !data_vencimento || !valor) {
       return NextResponse.json(
@@ -120,9 +120,9 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await sql`
-      INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor)
-      VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor})
-      RETURNING f.id, c.nome as cliente, f.documento_referencia, f.data_emissao, f.data_vencimento, f.valor, f.status, f.created_at, f.cliente_id
+      INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor, observacao)
+      VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor}, ${observacao || null})
+      RETURNING f.id, c.nome as cliente, f.documento_referencia, f.data_emissao, f.data_vencimento, f.valor, f.status, f.observacao, f.created_at, f.cliente_id
       FROM faturamento f
       LEFT JOIN clientes c ON f.cliente_id = c.id
       WHERE f.id = (SELECT MAX(id) FROM faturamento)

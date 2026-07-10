@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Printer, Users } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import LayoutShell from "@/components/layout-shell"
 
 interface Cliente {
@@ -44,6 +45,7 @@ interface Faturamento {
   data_emissao: string
   data_vencimento: string
   valor: number
+  observacao: string | null
   status: string
   created_at: string
 }
@@ -66,6 +68,7 @@ export default function FaturamentoPage() {
     data_emissao: "",
     data_vencimento: "",
     valor: "",
+    observacao: "",
     status: "pendente",
   })
 
@@ -449,6 +452,7 @@ export default function FaturamentoPage() {
                       data_emissao: "",
                       data_vencimento: "",
                       valor: "",
+                      observacao: "",
                       status: "pendente",
                     })
                   }}
@@ -541,6 +545,16 @@ export default function FaturamentoPage() {
                         <SelectItem value="cancelado">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="observacao">Observação</Label>
+                    <Textarea
+                      id="observacao"
+                      value={formData.observacao}
+                      onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                      placeholder="Digite observações sobre o faturamento..."
+                      className="h-24"
+                    />
                   </div>
                   <Button type="submit" className="w-full">
                     {editingId ? "Atualizar" : "Criar"} Faturamento
@@ -660,6 +674,7 @@ export default function FaturamentoPage() {
                                 data_emissao: fat.data_emissao,
                                 data_vencimento: fat.data_vencimento,
                                 valor: fat.valor.toString(),
+                                observacao: fat.observacao || "",
                                 status: fat.status,
                               })
                               setIsDialogOpen(true)

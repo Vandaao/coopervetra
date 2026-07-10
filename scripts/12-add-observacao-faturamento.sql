@@ -1,0 +1,1 @@
+ALTER TABLE faturamento ADD COLUMN IF NOT EXISTS observacao TEXT;
