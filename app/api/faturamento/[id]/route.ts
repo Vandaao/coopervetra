@@ -4,10 +4,21 @@ import { NextRequest, NextResponse } from "next/server"
 // Inicializar tabela se não existir
 async function initializeTable() {
   try {
+    // Criar tabela clientes se não existir
+    await sql`
+      CREATE TABLE IF NOT EXISTS clientes (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        cnpj VARCHAR(20) UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
+    // Criar tabela faturamento se não existir
     await sql`
       CREATE TABLE IF NOT EXISTS faturamento (
         id SERIAL PRIMARY KEY,
-        cliente_id INTEGER,
+        cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
         documento_referencia VARCHAR(50),
         data_emissao DATE NOT NULL,
         data_vencimento DATE NOT NULL,
@@ -18,13 +29,6 @@ async function initializeTable() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `
-
-    await sql`CREATE TABLE IF NOT EXISTS clientes (
-      id SERIAL PRIMARY KEY,
-      nome VARCHAR(255) NOT NULL,
-      cnpj VARCHAR(18) UNIQUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`
 
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_emissao ON faturamento(data_emissao)`
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_vencimento ON faturamento(data_vencimento)`

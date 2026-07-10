@@ -17,14 +17,23 @@ async function initializeTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_clientes_cnpj ON clientes(cnpj)`
     await sql`CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes(nome)`
 
-    // Tentar adicionar coluna cliente_id na tabela faturamento se não existir
+    // Verificar se coluna cliente_id existe na tabela faturamento
     try {
-      await sql`
-        ALTER TABLE faturamento 
-        ADD COLUMN cliente_id INTEGER REFERENCES clientes(id) ON DELETE RESTRICT
+      const columnExists = await sql`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'faturamento' AND column_name = 'cliente_id'
+        )
       `
+      
+      if (!columnExists.rows[0].exists) {
+        await sql`
+          ALTER TABLE faturamento 
+          ADD COLUMN cliente_id INTEGER REFERENCES clientes(id) ON DELETE RESTRICT
+        `
+      }
     } catch (e) {
-      // Coluna pode já existir, ignora
+      // Tabela faturamento pode não existir ainda
     }
 
     try {
