@@ -350,13 +350,13 @@ export default function FaturamentoPage() {
 
   return (
     <LayoutShell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Faturamento</h1>
             <p className="text-gray-600 mt-1">Gerenciar boletos e lançamentos</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={handleImprimirRelatorio}>
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Relatório
@@ -565,25 +565,25 @@ export default function FaturamentoPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-lg border">
             <p className="text-sm text-gray-600">Total Faturado</p>
-            <p className="text-2xl font-bold">R$ {totalFaturado.toFixed(2)}</p>
+            <p className="text-2xl font-bold break-words">R$ {totalFaturado.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg border">
             <p className="text-sm text-gray-600">Pendente</p>
-            <p className="text-2xl font-bold text-amber-600">R$ {totalPendente.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-amber-600 break-words">R$ {totalPendente.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 rounded-lg border">
             <p className="text-sm text-gray-600">Recebido</p>
-            <p className="text-2xl font-bold text-green-600">R$ {totalPago.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-green-600 break-words">R$ {totalPago.toFixed(2)}</p>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-lg border">
           <div className="space-y-4 mb-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
                 <Label htmlFor="filtro-status">Status</Label>
                 <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                   <SelectTrigger>
@@ -597,7 +597,7 @@ export default function FaturamentoPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
+              <div>
                 <Label htmlFor="filtro-data-inicio">Data Início</Label>
                 <Input
                   id="filtro-data-inicio"
@@ -606,7 +606,7 @@ export default function FaturamentoPage() {
                   onChange={(e) => setFiltroDataInicio(e.target.value)}
                 />
               </div>
-              <div className="flex-1">
+              <div>
                 <Label htmlFor="filtro-data-fim">Data Fim</Label>
                 <Input
                   id="filtro-data-fim"
