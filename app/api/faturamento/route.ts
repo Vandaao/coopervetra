@@ -39,55 +39,63 @@ export async function GET(request: NextRequest) {
 
     if (status && dataInicio && dataFim) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE status = ${status}
-          AND data_emissao >= ${dataInicio}::date
-          AND data_emissao <= ${dataFim}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.status = ${status}
+          AND f.data_emissao >= ${dataInicio}::date
+          AND f.data_emissao <= ${dataFim}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else if (status && dataInicio) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE status = ${status}
-          AND data_emissao >= ${dataInicio}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.status = ${status}
+          AND f.data_emissao >= ${dataInicio}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else if (status && dataFim) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE status = ${status}
-          AND data_emissao <= ${dataFim}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.status = ${status}
+          AND f.data_emissao <= ${dataFim}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else if (status) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE status = ${status}
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.status = ${status}
+        ORDER BY f.data_vencimento DESC
       `
     } else if (dataInicio && dataFim) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE data_emissao >= ${dataInicio}::date
-          AND data_emissao <= ${dataFim}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.data_emissao >= ${dataInicio}::date
+          AND f.data_emissao <= ${dataFim}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else if (dataInicio) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE data_emissao >= ${dataInicio}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.data_emissao >= ${dataInicio}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else if (dataFim) {
       result = await sql`
-        SELECT * FROM faturamento 
-        WHERE data_emissao <= ${dataFim}::date
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        WHERE f.data_emissao <= ${dataFim}::date
+        ORDER BY f.data_vencimento DESC
       `
     } else {
       result = await sql`
-        SELECT * FROM faturamento 
-        ORDER BY data_vencimento DESC
+        SELECT f.*, c.nome as cliente FROM faturamento f
+        LEFT JOIN clientes c ON f.cliente_id = c.id
+        ORDER BY f.data_vencimento DESC
       `
     }
 
@@ -102,9 +110,9 @@ export async function POST(request: NextRequest) {
   try {
     await initializeTable()
     const body = await request.json()
-    const { cliente, documento_referencia, data_emissao, data_vencimento, valor } = body
+    const { cliente_id, documento_referencia, data_emissao, data_vencimento, valor } = body
 
-    if (!cliente || !data_emissao || !data_vencimento || !valor) {
+    if (!cliente_id || !data_emissao || !data_vencimento || !valor) {
       return NextResponse.json(
         { error: "Campos obrigatórios faltando" },
         { status: 400 },
@@ -112,9 +120,12 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await sql`
-      INSERT INTO faturamento (cliente, documento_referencia, data_emissao, data_vencimento, valor)
-      VALUES (${cliente}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor})
-      RETURNING *
+      INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor)
+      VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor})
+      RETURNING f.id, c.nome as cliente, f.documento_referencia, f.data_emissao, f.data_vencimento, f.valor, f.status, f.created_at, f.cliente_id
+      FROM faturamento f
+      LEFT JOIN clientes c ON f.cliente_id = c.id
+      WHERE f.id = (SELECT MAX(id) FROM faturamento)
     `
 
     return NextResponse.json(result.rows[0], { status: 201 })
