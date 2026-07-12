@@ -122,6 +122,10 @@ export async function GET(request: NextRequest) {
       data_fim,
       cooperados: folhaPagamento,
       total_geral: totalGeral,
+      taxas: {
+        inss_percentual: descontoInssPercentual * 100,
+        administrativo_percentual: descontoAdminPercentual * 100,
+      },
     }
 
     return NextResponse.json(relatorio)

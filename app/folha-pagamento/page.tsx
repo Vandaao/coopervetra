@@ -34,6 +34,10 @@ interface FolhaPagamentoData {
     valor_liquido: number
   }>
   total_geral: number
+  taxas: {
+    inss_percentual: number
+    administrativo_percentual: number
+  }
 }
 
 export default function FolhaPagamentoPage() {
@@ -358,6 +362,17 @@ export default function FolhaPagamentoPage() {
                   </Button>
                   <PDFGeneratorFolha relatorio={relatorio} />
                 </div>
+              </div>
+
+              {/* Resumo de Taxas */}
+              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-4 items-center">
+                <span className="text-sm font-semibold text-blue-800">Taxas aplicadas:</span>
+                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
+                  INSS: {relatorio.taxas.inss_percentual.toFixed(2)}%
+                </span>
+                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
+                  Administrativo: {relatorio.taxas.administrativo_percentual.toFixed(2)}%
+                </span>
               </div>
 
               {/* Versão para tela */}

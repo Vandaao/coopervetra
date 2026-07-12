@@ -177,6 +177,10 @@ export async function GET(request: NextRequest) {
       valor_liquido,
       fretes: fretesFormatados,
       debitos: debitosFormatados,
+      taxas: {
+        inss_percentual: descontoInssPercentual * 100,
+        administrativo_percentual: descontoAdminPercentual * 100,
+      },
     }
 
     return NextResponse.json(relatorio)

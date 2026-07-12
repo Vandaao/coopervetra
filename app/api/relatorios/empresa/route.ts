@@ -190,6 +190,10 @@ export async function GET(request: NextRequest) {
       data_fim,
       cooperados: cooperadosRelatorio,
       totais: totaisGerais,
+      taxas: {
+        inss_percentual: descontoInssPercentual * 100,
+        administrativo_percentual: descontoAdminPercentual * 100,
+      },
     }
 
     return NextResponse.json(relatorio)
