@@ -64,25 +64,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar taxas cadastradas
-    const taxasResult = await sql`
-      SELECT nome, percentual FROM taxas_descontos WHERE ativo = true ORDER BY nome
-    `
+    let descontoInssPercentual = 0.045 // Padrão 4.5%
+    let descontoAdminPercentual = 0.06 // Padrão 6%
 
-    const taxas = taxasResult.reduce(
-      (acc, taxa) => {
-        acc[taxa.nome.toLowerCase()] = Number(taxa.percentual) / 100
-        return acc
-      },
-      {} as Record<string, number>,
-    )
+    try {
+      const taxasResult = await sql`
+        SELECT nome, percentual FROM taxas_descontos WHERE ativo = true
+      `
+
+      // Procurar pelas taxas INSS e Administrativo
+      taxasResult.rows.forEach((taxa: any) => {
+        const nomeTaxa = taxa.nome.toLowerCase().trim()
+        if (nomeTaxa === "inss") {
+          descontoInssPercentual = Number(taxa.percentual) / 100
+        } else if (nomeTaxa === "administrativo") {
+          descontoAdminPercentual = Number(taxa.percentual) / 100
+        }
+      })
+    } catch (e) {
+      console.error("Erro ao buscar taxas, usando valores padrão:", e)
+    }
 
     // Processar dados da folha de pagamento
     const folhaPagamento = cooperadosPagamento.map((cooperado) => {
       const valorBruto = Number(cooperado.valor_bruto)
       
       // Aplicar taxas cadastradas
-      const descontoInss = valorBruto * (taxas.inss || 0.045)
-      const descontoAdministrativo = valorBruto * (taxas.administrativo || 0.06)
+      const descontoInss = valorBruto * descontoInssPercentual
+      const descontoAdministrativo = valorBruto * descontoAdminPercentual
 
       // Buscar débitos do cooperado
       const debitoCooperado = debitos.find((d) => d.cooperado_id === cooperado.cooperado_id)

@@ -120,9 +120,31 @@ export async function GET(request: NextRequest) {
     const total_km = fretes.reduce((sum, frete) => sum + Number(frete.km), 0)
     const valor_bruto = total_valor + total_chapada
 
+    // Buscar taxas cadastradas
+    let descontoInssPercentual = 0.045 // Padrão 4.5%
+    let descontoAdminPercentual = 0.06 // Padrão 6%
+
+    try {
+      const taxasResult = await sql`
+        SELECT nome, percentual FROM taxas_descontos WHERE ativo = true
+      `
+
+      // Procurar pelas taxas INSS e Administrativo
+      taxasResult.forEach((taxa: any) => {
+        const nomeTaxa = taxa.nome.toLowerCase().trim()
+        if (nomeTaxa === "inss") {
+          descontoInssPercentual = Number(taxa.percentual) / 100
+        } else if (nomeTaxa === "administrativo") {
+          descontoAdminPercentual = Number(taxa.percentual) / 100
+        }
+      })
+    } catch (e) {
+      console.error("Erro ao buscar taxas, usando valores padrão:", e)
+    }
+
     // Calcular descontos
-    const desconto_inss = valor_bruto * 0.045 // 4.5%
-    const desconto_administrativo = valor_bruto * 0.06 // 6%
+    const desconto_inss = valor_bruto * descontoInssPercentual
+    const desconto_administrativo = valor_bruto * descontoAdminPercentual
     const total_debitos = debitos.reduce((sum, debito) => sum + Number(debito.valor), 0)
     const total_descontos = desconto_inss + desconto_administrativo + total_debitos
     const valor_liquido = valor_bruto - total_descontos
