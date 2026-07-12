@@ -63,11 +63,26 @@ export async function GET(request: NextRequest) {
       `
     }
 
+    // Buscar taxas cadastradas
+    const taxasResult = await sql`
+      SELECT nome, percentual FROM taxas_descontos WHERE ativo = true ORDER BY nome
+    `
+
+    const taxas = taxasResult.reduce(
+      (acc, taxa) => {
+        acc[taxa.nome.toLowerCase()] = Number(taxa.percentual) / 100
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+
     // Processar dados da folha de pagamento
     const folhaPagamento = cooperadosPagamento.map((cooperado) => {
       const valorBruto = Number(cooperado.valor_bruto)
-      const descontoInss = valorBruto * 0.045 // 4.5%
-      const descontoAdministrativo = valorBruto * 0.06 // 6%
+      
+      // Aplicar taxas cadastradas
+      const descontoInss = valorBruto * (taxas.inss || 0.045)
+      const descontoAdministrativo = valorBruto * (taxas.administrativo || 0.06)
 
       // Buscar débitos do cooperado
       const debitoCooperado = debitos.find((d) => d.cooperado_id === cooperado.cooperado_id)
