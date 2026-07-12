@@ -108,7 +108,7 @@ export default function ConfiguracoesPage() {
     setEditingId(taxa.id)
     setFormData({
       nome: taxa.nome,
-      percentual: taxa.percentual.toString(),
+      percentual: (typeof taxa.percentual === "string" ? taxa.percentual : taxa.percentual.toString()),
       descricao: taxa.descricao || "",
     })
     setIsDialogOpen(true)
@@ -225,7 +225,7 @@ export default function ConfiguracoesPage() {
                     {taxas.map((taxa) => (
                       <TableRow key={taxa.id}>
                         <TableCell className="font-medium">{taxa.nome}</TableCell>
-                        <TableCell>{taxa.percentual.toFixed(2)}%</TableCell>
+                        <TableCell>{Number(taxa.percentual).toFixed(2)}%</TableCell>
                         <TableCell>{taxa.descricao || "-"}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
