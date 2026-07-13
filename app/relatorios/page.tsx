@@ -48,10 +48,7 @@ interface RelatorioData {
     descricao: string
     valor: number
   }>
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number; valor: number }>
 }
 
 export default function RelatoriosPage() {
@@ -122,7 +119,6 @@ export default function RelatoriosPage() {
 
       if (response.ok) {
         setRelatorio(data)
-        console.log("[v0] Relatório carregado com sucesso")
         toast({
           title: "Sucesso",
           description: "Relatório gerado com sucesso",
@@ -165,7 +161,6 @@ export default function RelatoriosPage() {
 
       if (response.ok) {
         setRelatorio(data)
-        console.log("[v0] Relatório atualizado com sucesso")
         toast({
           title: "Atualizado",
           description: "Dados atualizados com sucesso",
@@ -314,14 +309,11 @@ export default function RelatoriosPage() {
             <span style="font-weight: bold;">VALOR TOTAL FRETES:</span>
             <span style="font-weight: bold;">R$ ${relatorio.valor_bruto.toFixed(2)}</span>
           </div>
+          ${relatorio.taxas.map((t) => `
           <div style="display: flex; justify-content: space-between;">
-            <span style="font-weight: bold;">DESCONTO ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%:</span>
-            <span style="font-weight: bold; color: #dc2626;">R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="font-weight: bold;">DESCONTO INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%:</span>
-            <span style="font-weight: bold; color: #dc2626;">R$ ${relatorio.desconto_inss.toFixed(2)}</span>
-          </div>
+            <span style="font-weight: bold;">DESCONTO ${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%:</span>
+            <span style="font-weight: bold; color: #dc2626;">R$ ${Number(t.valor).toFixed(2)}</span>
+          </div>`).join("")}
           ${linhaDebitos}
         </div>
       </div>
@@ -538,18 +530,16 @@ export default function RelatoriosPage() {
 
                 {/* Resumo de Descontos */}
                 <div className="bg-gray-50 border rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-sm text-gray-700 mb-3">Resumo de Descontos</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                    <div className="flex justify-between border-b pb-2 sm:border-b-0 sm:pb-0">
-                      <span className="text-gray-600">INSS ({relatorio.taxas.inss_percentual.toFixed(1)}%):</span>
-                      <span className="font-semibold text-red-600">- R$ {relatorio.desconto_inss.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-2 sm:border-b-0 sm:pb-0">
-                      <span className="text-gray-600">Administrativo ({relatorio.taxas.administrativo_percentual.toFixed(1)}%):</span>
-                      <span className="font-semibold text-red-600">- R$ {relatorio.desconto_administrativo.toFixed(2)}</span>
-                    </div>
+                  <h3 className="font-semibold text-sm text-gray-700 mb-3">Descontos Aplicados</h3>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    {relatorio.taxas.map((t) => (
+                      <div key={t.nome} className="flex gap-2 bg-white border rounded px-3 py-2">
+                        <span className="text-gray-600">{t.nome} ({Number(t.percentual).toFixed(1)}%):</span>
+                        <span className="font-semibold text-red-600">- R$ {Number(t.valor).toFixed(2)}</span>
+                      </div>
+                    ))}
                     {relatorio.total_debitos > 0 && (
-                      <div className="flex justify-between">
+                      <div className="flex gap-2 bg-white border rounded px-3 py-2">
                         <span className="text-gray-600">Débitos:</span>
                         <span className="font-semibold text-red-600">- R$ {relatorio.total_debitos.toFixed(2)}</span>
                       </div>
@@ -733,14 +723,12 @@ export default function RelatoriosPage() {
                     <span className="font-bold">VALOR TOTAL FRETES:</span>
                     <span className="font-bold">R$ {relatorio.valor_bruto.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-bold">DESCONTO ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%:</span>
-                    <span className="font-bold text-red-600">R$ {relatorio.desconto_administrativo.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-bold">DESCONTO INSS {relatorio.taxas.inss_percentual.toFixed(1)}%:</span>
-                    <span className="font-bold text-red-600">R$ {relatorio.desconto_inss.toFixed(2)}</span>
-                  </div>
+                  {relatorio.taxas.map((t) => (
+                    <div key={t.nome} className="flex justify-between">
+                      <span className="font-bold">DESCONTO {t.nome.toUpperCase()} {Number(t.percentual).toFixed(1)}%:</span>
+                      <span className="font-bold text-red-600">R$ {Number(t.valor).toFixed(2)}</span>
+                    </div>
+                  ))}
                   {relatorio.total_debitos > 0 && (
                     <div className="flex justify-between">
                       <span className="font-bold">DÉBITOS:</span>

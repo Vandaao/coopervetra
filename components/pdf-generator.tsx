@@ -31,10 +31,7 @@ interface RelatorioData {
     descricao: string
     valor: number
   }>
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number; valor: number }>
 }
 
 interface PDFGeneratorProps {
