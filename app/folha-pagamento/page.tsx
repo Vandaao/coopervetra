@@ -128,7 +128,6 @@ export default function FolhaPagamentoPage() {
 
       if (response.ok) {
         setRelatorio(data)
-        console.log("[v0] Folha de pagamento atualizada com sucesso")
         toast({
           title: "Atualizado",
           description: "Dados atualizados com sucesso",
@@ -152,9 +151,12 @@ export default function FolhaPagamentoPage() {
       .map(
         (cooperado, index) => `
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
-            <td style="border: 1px solid black; padding: 8px;">${cooperado.cooperado_nome}</td>
-            <td style="border: 1px solid black; padding: 8px; white-space: pre-wrap;">${cooperado.conta_bancaria || ""}</td>
-            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : ""}">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 6px; font-size: 10px;">${cooperado.cooperado_nome}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: right; font-size: 10px;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.desconto_inss).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; font-size: 10px; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
           </tr>
         `,
       )
@@ -182,19 +184,22 @@ export default function FolhaPagamentoPage() {
         </div>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px;">
         <thead>
-          <tr>
-            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: left;">COOPERADO</th>
-            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: left;">DADOS BANCÁRIOS</th>
-            <th style="border: 1px solid black; padding: 8px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
+          <tr style="background-color: #f0f0f0;">
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">COOPERADO</th>
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR BRUTO</th>
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%</th>
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">DÉBITOS</th>
+            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
           </tr>
         </thead>
         <tbody>
           ${linhas}
-          <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
-            <td style="border: 2px solid black; padding: 8px;" colspan="2">TOTAL GERAL</td>
-            <td style="border: 2px solid black; padding: 8px; text-align: right; ${relatorio.total_geral < 0 ? "color: #dc2626;" : ""}">R$ ${relatorio.total_geral.toFixed(2)}</td>
+          <tr style="background-color: #e0e0e0; font-weight: bold;">
+            <td style="border: 2px solid black; padding: 6px;" colspan="5">TOTAL GERAL</td>
+            <td style="border: 2px solid black; padding: 6px; text-align: right; ${relatorio.total_geral < 0 ? "color: #dc2626;" : ""}">R$ ${relatorio.total_geral.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -388,25 +393,29 @@ export default function FolhaPagamentoPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cooperado</TableHead>
-                        <TableHead>Dados Bancários</TableHead>
-                        <TableHead>Valor Líquido</TableHead>
+                        <TableHead className="text-right">Valor Bruto</TableHead>
+                        <TableHead className="text-right">INSS {relatorio.taxas.inss_percentual.toFixed(1)}%</TableHead>
+                        <TableHead className="text-right">ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%</TableHead>
+                        <TableHead className="text-right">Débitos</TableHead>
+                        <TableHead className="text-right">Valor Líquido</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {relatorio.cooperados.map((cooperado) => (
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
-                          <TableCell className="max-w-xs">
-                            <div className="text-sm whitespace-pre-wrap">{cooperado.conta_bancaria}</div>
-                          </TableCell>
-                          <TableCell className={`font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
-                            R$ {cooperado.valor_liquido.toFixed(2)}
+                          <TableCell className="text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</TableCell>
+                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.desconto_inss).toFixed(2)}</TableCell>
+                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.desconto_administrativo).toFixed(2)}</TableCell>
+                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.total_debitos).toFixed(2)}</TableCell>
+                          <TableCell className={`text-right font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
+                            R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
-                      <TableRow className="bg-gray-50 font-bold text-lg">
-                        <TableCell colSpan={2}>TOTAL GERAL</TableCell>
-                        <TableCell className={relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
+                      <TableRow className="bg-gray-50 font-bold text-base">
+                        <TableCell colSpan={5}>TOTAL GERAL</TableCell>
+                        <TableCell className={`text-right ${relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}`}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -448,31 +457,35 @@ export default function FolhaPagamentoPage() {
 
                 {/* Tabela de Pagamento */}
                 <div className="mb-6">
-                  <table className="w-full border-collapse">
+                  <table className="w-full border-collapse text-xs">
                     <thead>
-                      <tr className="border-2 border-black">
-                        <th className="border border-black p-3 font-bold text-left">COOPERADO</th>
-                        <th className="border border-black p-3 font-bold text-left">DADOS BANCÁRIOS</th>
-                        <th className="border border-black p-3 font-bold text-right">VALOR LÍQUIDO</th>
+                      <tr className="border-2 border-black bg-gray-100">
+                        <th className="border border-black p-2 font-bold text-left">COOPERADO</th>
+                        <th className="border border-black p-2 font-bold text-right">VALOR BRUTO</th>
+                        <th className="border border-black p-2 font-bold text-right">INSS {relatorio.taxas.inss_percentual.toFixed(1)}%</th>
+                        <th className="border border-black p-2 font-bold text-right">ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+                        <th className="border border-black p-2 font-bold text-right">DÉBITOS</th>
+                        <th className="border border-black p-2 font-bold text-right">TOTAL DESC.</th>
+                        <th className="border border-black p-2 font-bold text-right">VALOR LÍQUIDO</th>
                       </tr>
                     </thead>
                     <tbody>
                       {relatorio.cooperados.map((cooperado, index) => (
                         <tr key={cooperado.cooperado_id} className={index % 2 === 0 ? "bg-gray-50" : ""}>
-                          <td className="border border-black p-3">{cooperado.cooperado_nome}</td>
-                          <td className="border border-black p-3 text-sm whitespace-pre-wrap">
-                            {cooperado.conta_bancaria}
-                          </td>
-                          <td className="border border-black p-3 text-right font-bold" style={cooperado.valor_liquido < 0 ? { color: "#dc2626" } : {}}>
-                            R$ {cooperado.valor_liquido.toFixed(2)}
+                          <td className="border border-black p-2">{cooperado.cooperado_nome}</td>
+                          <td className="border border-black p-2 text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</td>
+                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.desconto_inss).toFixed(2)}</td>
+                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.total_debitos).toFixed(2)}</td>
+                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.total_descontos).toFixed(2)}</td>
+                          <td className="border border-black p-2 text-right font-bold" style={cooperado.valor_liquido < 0 ? { color: "#dc2626" } : { color: "#16a34a" }}>
+                            R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </td>
                         </tr>
                       ))}
-                      <tr className="bg-gray-200 font-bold text-lg">
-                        <td className="border-2 border-black p-3" colSpan={2}>
-                          TOTAL GERAL
-                        </td>
-                        <td className="border-2 border-black p-3 text-right font-bold" style={relatorio.total_geral < 0 ? { color: "#dc2626" } : {}}>R$ {relatorio.total_geral.toFixed(2)}</td>
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border-2 border-black p-2" colSpan={6}>TOTAL GERAL</td>
+                        <td className="border-2 border-black p-2 text-right font-bold" style={relatorio.total_geral < 0 ? { color: "#dc2626" } : {}}>R$ {relatorio.total_geral.toFixed(2)}</td>
                       </tr>
                     </tbody>
                   </table>

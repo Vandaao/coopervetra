@@ -21,6 +21,10 @@ interface FolhaPagamentoData {
     valor_liquido: number
   }>
   total_geral: number
+  taxas: {
+    inss_percentual: number
+    administrativo_percentual: number
+  }
 }
 
 interface PDFGeneratorFolhaProps {
@@ -76,12 +80,16 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
         </div>
 
         <div style="margin-bottom: 20px;">
-          <table style="width: 100%; border-collapse: collapse;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
             <thead>
-              <tr style="border: 2px solid black;">
-                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: left;">COOPERADO</th>
-                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: center;">CONTA BANCÁRIA</th>
-                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
+              <tr style="background-color: #f0f0f0; border: 2px solid black;">
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">COOPERADO</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR BRUTO</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">DÉBITOS</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">TOTAL DESC.</th>
+                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
               </tr>
             </thead>
             <tbody>
@@ -89,16 +97,20 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
                 .map(
                   (cooperado, index) => `
                 <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
-                  <td style="border: 1px solid black; padding: 12px;">${cooperado.cooperado_nome}</td>
-                  <td style="border: 1px solid black; padding: 12px; text-align: center;">${cooperado.conta_bancaria}</td>
-                  <td style="border: 1px solid black; padding: 12px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px;">${cooperado.cooperado_nome}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.desconto_inss).toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_descontos).toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
                 </tr>
               `,
                 )
                 .join("")}
-              <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
-                <td style="border: 2px solid black; padding: 12px;" colspan="2">TOTAL GERAL</td>
-                <td style="border: 2px solid black; padding: 12px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
+              <tr style="background-color: #e0e0e0; font-weight: bold;">
+                <td style="border: 2px solid black; padding: 6px;" colspan="6">TOTAL GERAL (VALOR LÍQUIDO)</td>
+                <td style="border: 2px solid black; padding: 6px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
