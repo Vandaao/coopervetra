@@ -19,6 +19,7 @@ interface RelatorioEmpresaData {
     valor_bruto: number
     desconto_inss: number
     desconto_administrativo: number
+    descontos_taxas: Array<{ nome: string; valor: number }>
     total_debitos: number
     total_descontos: number
     valor_liquido: number
@@ -37,6 +38,7 @@ interface RelatorioEmpresaData {
     total_valor_bruto: number
     total_desconto_inss: number
     total_desconto_administrativo: number
+    total_descontos_taxas: Array<{ nome: string; total: number }>
     total_debitos: number
     total_descontos: number
     total_valor_liquido: number
@@ -124,8 +126,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
                 <td style="border: 1px solid black; padding: 2px; text-align: center;">${cooperado.total_fretes}</td>
                 <td style="border: 1px solid black; padding: 2px; text-align: center;">${cooperado.total_km}</td>
                 <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.valor_bruto.toFixed(2)}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.desconto_inss.toFixed(2)}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.desconto_administrativo.toFixed(2)}</td>
+                ${cooperado.descontos_taxas.map((taxa) => `<td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${Number(taxa.valor).toFixed(2)}</td>`).join("")}
                 <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.total_debitos.toFixed(2)}</td>
                 <td style="border: 1px solid black; padding: 2px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
               </tr>
@@ -137,8 +138,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
               <td style="border: 2px solid black; padding: 3px; text-align: center;">${relatorio.totais.total_fretes}</td>
               <td style="border: 2px solid black; padding: 3px; text-align: center;">${relatorio.totais.total_km}</td>
               <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_valor_bruto.toFixed(2)}</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_desconto_inss.toFixed(2)}</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_desconto_administrativo.toFixed(2)}</td>
+              ${relatorio.totais.total_descontos_taxas.map((taxa) => `<td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${Number(taxa.total).toFixed(2)}</td>`).join("")}
               <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_debitos.toFixed(2)}</td>
               <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_valor_liquido.toFixed(2)}</td>
             </tr>

@@ -160,6 +160,7 @@ export async function GET(request: NextRequest) {
         valor_bruto: valorBruto,
         desconto_inss: descontoInss,
         desconto_administrativo: descontoAdministrativo,
+        descontos_taxas: descontosTaxas,
         total_debitos: totalDebitos,
         total_descontos: totalDescontos,
         valor_liquido: valorLiquido,
@@ -178,6 +179,18 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Calcular totais gerais das taxas
+    const totaisTaxas = taxasList.map((taxa) => {
+      const total = cooperadosRelatorio.reduce((sum, c) => {
+        const descontoTax = c.descontos_taxas.find((dt) => dt.nome.toLowerCase() === taxa.nome.toLowerCase())
+        return sum + (descontoTax?.valor ?? 0)
+      }, 0)
+      return {
+        nome: taxa.nome,
+        total: total,
+      }
+    })
+
     // Calcular totais gerais
     const totaisGerais = {
       total_cooperados: cooperadosRelatorio.length,
@@ -186,6 +199,7 @@ export async function GET(request: NextRequest) {
       total_valor_bruto: cooperadosRelatorio.reduce((sum, c) => sum + c.valor_bruto, 0),
       total_desconto_inss: cooperadosRelatorio.reduce((sum, c) => sum + c.desconto_inss, 0),
       total_desconto_administrativo: cooperadosRelatorio.reduce((sum, c) => sum + c.desconto_administrativo, 0),
+      total_descontos_taxas: totaisTaxas,
       total_debitos: cooperadosRelatorio.reduce((sum, c) => sum + c.total_debitos, 0),
       total_descontos: cooperadosRelatorio.reduce((sum, c) => sum + c.total_descontos, 0),
       total_valor_liquido: cooperadosRelatorio.reduce((sum, c) => sum + c.valor_liquido, 0),
