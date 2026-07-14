@@ -149,7 +149,7 @@ export default function FolhaPagamentoPage() {
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
             <td style="border: 1px solid black; padding: 6px; font-size: 10px;">${cooperado.cooperado_nome}</td>
             <td style="border: 1px solid black; padding: 6px; text-align: right; font-size: 10px;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
-            ${(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")}
+            ${cooperado.descontos_taxas.map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")}
             <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
             <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; font-size: 10px; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
           </tr>
@@ -399,7 +399,7 @@ export default function FolhaPagamentoPage() {
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
                           <TableCell className="text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</TableCell>
-                          {(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => (
+                          {cooperado.descontos_taxas.map((t: any) => (
                             <TableCell key={t.nome} className="text-right text-red-600">R$ {Number(t.valor).toFixed(2)}</TableCell>
                           ))}
                           <TableCell className="text-right text-red-600">R$ {Number(cooperado.total_debitos).toFixed(2)}</TableCell>
@@ -472,7 +472,7 @@ export default function FolhaPagamentoPage() {
                         <tr key={cooperado.cooperado_id} className={index % 2 === 0 ? "bg-gray-50" : ""}>
                           <td className="border border-black p-2">{cooperado.cooperado_nome}</td>
                           <td className="border border-black p-2 text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</td>
-                          {(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => (
+                          {cooperado.descontos_taxas.map((t: any) => (
                             <td key={t.nome} className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(t.valor).toFixed(2)}</td>
                           ))}
                           <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.total_debitos).toFixed(2)}</td>

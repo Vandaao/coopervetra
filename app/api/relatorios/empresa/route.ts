@@ -191,13 +191,19 @@ export async function GET(request: NextRequest) {
       total_valor_liquido: cooperadosRelatorio.reduce((sum, c) => sum + c.valor_liquido, 0),
     }
 
+    // Montar taxas com percentuais (sem valores individuais por cooperado)
+    const taxasComPercentuais = taxasList.map((taxa) => ({
+      nome: taxa.nome,
+      percentual: taxa.percentual,
+    }))
+
     const relatorio = {
       empresa_nome: empresa[0].nome,
       data_inicio,
       data_fim,
       cooperados: cooperadosRelatorio,
       totais: totaisGerais,
-      taxas: taxasList,
+      taxas: taxasComPercentuais,
     }
 
     return NextResponse.json(relatorio)

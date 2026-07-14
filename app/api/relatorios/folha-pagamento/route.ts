@@ -123,13 +123,19 @@ export async function GET(request: NextRequest) {
     // Calcular total geral
     const totalGeral = folhaPagamento.reduce((sum, item) => sum + item.valor_liquido, 0)
 
+    // Montar taxas com percentuais (sem valores individuais por cooperado)
+    const taxasComPercentuais = taxasList.map((taxa) => ({
+      nome: taxa.nome,
+      percentual: taxa.percentual,
+    }))
+
     const relatorio = {
       empresa_nome: empresa[0].nome,
       data_inicio,
       data_fim,
       cooperados: folhaPagamento,
       total_geral: totalGeral,
-      taxas: taxasList,
+      taxas: taxasComPercentuais,
     }
 
     return NextResponse.json(relatorio)

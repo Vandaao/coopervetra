@@ -16,24 +16,13 @@ interface FolhaPagamentoData {
     valor_bruto: number
     desconto_inss: number
     desconto_administrativo: number
+    descontos_taxas: Array<{ nome: string; valor: number }>
     total_debitos: number
     total_descontos: number
     valor_liquido: number
   }>
   total_geral: number
   taxas: Array<{ nome: string; percentual: number }>
-  cooperados: Array<{
-    cooperado_id: number
-    cooperado_nome: string
-    conta_bancaria: string
-    valor_bruto: number
-    desconto_inss: number
-    desconto_administrativo: number
-    descontos_taxas?: Array<{ nome: string; valor: number }>
-    total_debitos: number
-    total_descontos: number
-    valor_liquido: number
-  }>
 }
 
 interface PDFGeneratorFolhaProps {
@@ -103,18 +92,15 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
             <tbody>
               ${relatorio.cooperados
                 .map(
-                  (cooperado, index) => {
-                    const taxasCols = (cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")
-                    return `
+                  (cooperado, index) => `
                 <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
                   <td style="border: 1px solid black; padding: 6px;">${cooperado.cooperado_nome}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
-                  ${taxasCols}
+                  ${cooperado.descontos_taxas.map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")}
                   <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_descontos).toFixed(2)}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
                 </tr>`
-                  }
                 )
                 .join("")}
               <tr style="background-color: #e0e0e0; font-weight: bold;">
