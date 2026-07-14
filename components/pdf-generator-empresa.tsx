@@ -41,10 +41,7 @@ interface RelatorioEmpresaData {
     total_descontos: number
     total_valor_liquido: number
   }
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number }>
 }
 
 interface PDFGeneratorEmpresaProps {
@@ -113,8 +110,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
               <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: center;">FRETES</th>
               <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: center;">KM</th>
               <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">VLR BRUTO</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+              ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
               <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">DÉBITOS</th>
               <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">VLR LÍQUIDO</th>
             </tr>

@@ -34,10 +34,7 @@ interface FolhaPagamentoData {
     valor_liquido: number
   }>
   total_geral: number
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number }>
 }
 
 export default function FolhaPagamentoPage() {
@@ -90,7 +87,6 @@ export default function FolhaPagamentoPage() {
 
       if (response.ok) {
         setRelatorio(data)
-        console.log("[v0] Folha de pagamento carregada com sucesso")
         toast({
           title: "Sucesso",
           description: "Folha de pagamento gerada com sucesso",
@@ -153,8 +149,7 @@ export default function FolhaPagamentoPage() {
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
             <td style="border: 1px solid black; padding: 6px; font-size: 10px;">${cooperado.cooperado_nome}</td>
             <td style="border: 1px solid black; padding: 6px; text-align: right; font-size: 10px;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
-            <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.desconto_inss).toFixed(2)}</td>
-            <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+            ${(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")}
             <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626; font-size: 10px;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
             <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; font-size: 10px; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
           </tr>
@@ -189,8 +184,7 @@ export default function FolhaPagamentoPage() {
           <tr style="background-color: #f0f0f0;">
             <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">COOPERADO</th>
             <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR BRUTO</th>
-            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%</th>
-            <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+            ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
             <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">DÉBITOS</th>
             <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
           </tr>
@@ -198,7 +192,7 @@ export default function FolhaPagamentoPage() {
         <tbody>
           ${linhas}
           <tr style="background-color: #e0e0e0; font-weight: bold;">
-            <td style="border: 2px solid black; padding: 6px;" colspan="5">TOTAL GERAL</td>
+            <td style="border: 2px solid black; padding: 6px;" colspan="${2 + relatorio.taxas.length + 1}">TOTAL GERAL</td>
             <td style="border: 2px solid black; padding: 6px; text-align: right; ${relatorio.total_geral < 0 ? "color: #dc2626;" : ""}">R$ ${relatorio.total_geral.toFixed(2)}</td>
           </tr>
         </tbody>
@@ -370,14 +364,13 @@ export default function FolhaPagamentoPage() {
               </div>
 
               {/* Resumo de Taxas */}
-              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-4 items-center">
+              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-3 items-center">
                 <span className="text-sm font-semibold text-blue-800">Taxas aplicadas:</span>
-                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
-                  INSS: {relatorio.taxas.inss_percentual.toFixed(2)}%
-                </span>
-                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
-                  Administrativo: {relatorio.taxas.administrativo_percentual.toFixed(2)}%
-                </span>
+                {relatorio.taxas.map((t) => (
+                  <span key={t.nome} className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
+                    {t.nome}: {Number(t.percentual).toFixed(2)}%
+                  </span>
+                ))}
               </div>
 
               {/* Versão para tela */}
@@ -394,8 +387,9 @@ export default function FolhaPagamentoPage() {
                       <TableRow>
                         <TableHead>Cooperado</TableHead>
                         <TableHead className="text-right">Valor Bruto</TableHead>
-                        <TableHead className="text-right">INSS {relatorio.taxas.inss_percentual.toFixed(1)}%</TableHead>
-                        <TableHead className="text-right">ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%</TableHead>
+                        {relatorio.taxas.map((t) => (
+                          <TableHead key={t.nome} className="text-right">{t.nome} {Number(t.percentual).toFixed(1)}%</TableHead>
+                        ))}
                         <TableHead className="text-right">Débitos</TableHead>
                         <TableHead className="text-right">Valor Líquido</TableHead>
                       </TableRow>
@@ -405,8 +399,9 @@ export default function FolhaPagamentoPage() {
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
                           <TableCell className="text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</TableCell>
-                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.desconto_inss).toFixed(2)}</TableCell>
-                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.desconto_administrativo).toFixed(2)}</TableCell>
+                          {(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => (
+                            <TableCell key={t.nome} className="text-right text-red-600">R$ {Number(t.valor).toFixed(2)}</TableCell>
+                          ))}
                           <TableCell className="text-right text-red-600">R$ {Number(cooperado.total_debitos).toFixed(2)}</TableCell>
                           <TableCell className={`text-right font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
@@ -414,7 +409,7 @@ export default function FolhaPagamentoPage() {
                         </TableRow>
                       ))}
                       <TableRow className="bg-gray-50 font-bold text-base">
-                        <TableCell colSpan={5}>TOTAL GERAL</TableCell>
+                        <TableCell colSpan={2 + relatorio.taxas.length + 1}>TOTAL GERAL</TableCell>
                         <TableCell className={`text-right ${relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}`}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
                       </TableRow>
                     </TableBody>
@@ -462,8 +457,11 @@ export default function FolhaPagamentoPage() {
                       <tr className="border-2 border-black bg-gray-100">
                         <th className="border border-black p-2 font-bold text-left">COOPERADO</th>
                         <th className="border border-black p-2 font-bold text-right">VALOR BRUTO</th>
-                        <th className="border border-black p-2 font-bold text-right">INSS {relatorio.taxas.inss_percentual.toFixed(1)}%</th>
-                        <th className="border border-black p-2 font-bold text-right">ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+                        {relatorio.taxas.map((t) => (
+                          <th key={t.nome} className="border border-black p-2 font-bold text-right">
+                            {t.nome.toUpperCase()} {Number(t.percentual).toFixed(1)}%
+                          </th>
+                        ))}
                         <th className="border border-black p-2 font-bold text-right">DÉBITOS</th>
                         <th className="border border-black p-2 font-bold text-right">TOTAL DESC.</th>
                         <th className="border border-black p-2 font-bold text-right">VALOR LÍQUIDO</th>
@@ -474,8 +472,9 @@ export default function FolhaPagamentoPage() {
                         <tr key={cooperado.cooperado_id} className={index % 2 === 0 ? "bg-gray-50" : ""}>
                           <td className="border border-black p-2">{cooperado.cooperado_nome}</td>
                           <td className="border border-black p-2 text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</td>
-                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.desconto_inss).toFixed(2)}</td>
-                          <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+                          {(cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => (
+                            <td key={t.nome} className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(t.valor).toFixed(2)}</td>
+                          ))}
                           <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.total_debitos).toFixed(2)}</td>
                           <td className="border border-black p-2 text-right" style={{ color: "#dc2626" }}>R$ {Number(cooperado.total_descontos).toFixed(2)}</td>
                           <td className="border border-black p-2 text-right font-bold" style={cooperado.valor_liquido < 0 ? { color: "#dc2626" } : { color: "#16a34a" }}>
@@ -484,7 +483,7 @@ export default function FolhaPagamentoPage() {
                         </tr>
                       ))}
                       <tr className="bg-gray-200 font-bold">
-                        <td className="border-2 border-black p-2" colSpan={6}>TOTAL GERAL</td>
+                        <td className="border-2 border-black p-2" colSpan={2 + relatorio.taxas.length + 2}>TOTAL GERAL</td>
                         <td className="border-2 border-black p-2 text-right font-bold" style={relatorio.total_geral < 0 ? { color: "#dc2626" } : {}}>R$ {relatorio.total_geral.toFixed(2)}</td>
                       </tr>
                     </tbody>

@@ -67,10 +67,7 @@ interface RelatorioEmpresaData {
     total_descontos: number
     total_valor_liquido: number
   }
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number }>
 }
 
 export default function RelatoriosEmpresaPage() {
@@ -494,14 +491,13 @@ export default function RelatoriosEmpresaPage() {
               </div>
 
               {/* Taxas aplicadas */}
-              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-4 items-center">
+              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-3 items-center">
                 <span className="text-sm font-semibold text-blue-800">Taxas aplicadas:</span>
-                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
-                  INSS: {relatorio.taxas.inss_percentual.toFixed(2)}%
-                </span>
-                <span className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
-                  Administrativo: {relatorio.taxas.administrativo_percentual.toFixed(2)}%
-                </span>
+                {relatorio.taxas.map((t) => (
+                  <span key={t.nome} className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
+                    {t.nome}: {Number(t.percentual).toFixed(2)}%
+                  </span>
+                ))}
               </div>
 
               {/* Versão para tela */}
@@ -655,8 +651,9 @@ export default function RelatoriosEmpresaPage() {
                         <th className="border border-black p-1 font-bold">FRETES</th>
                         <th className="border border-black p-1 font-bold">KM</th>
                         <th className="border border-black p-1 font-bold">VLR BRUTO</th>
-                        <th className="border border-black p-1 font-bold">INSS {relatorio.taxas.inss_percentual.toFixed(1)}%</th>
-                        <th className="border border-black p-1 font-bold">ADM {relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+                        {relatorio.taxas.map((t) => (
+                          <th key={t.nome} className="border border-black p-1 font-bold">{t.nome.toUpperCase()} {Number(t.percentual).toFixed(1)}%</th>
+                        ))}
                         <th className="border border-black p-1 font-bold">DÉBITOS</th>
                         <th className="border border-black p-1 font-bold">VLR LÍQUIDO</th>
                       </tr>

@@ -21,10 +21,19 @@ interface FolhaPagamentoData {
     valor_liquido: number
   }>
   total_geral: number
-  taxas: {
-    inss_percentual: number
-    administrativo_percentual: number
-  }
+  taxas: Array<{ nome: string; percentual: number }>
+  cooperados: Array<{
+    cooperado_id: number
+    cooperado_nome: string
+    conta_bancaria: string
+    valor_bruto: number
+    desconto_inss: number
+    desconto_administrativo: number
+    descontos_taxas?: Array<{ nome: string; valor: number }>
+    total_debitos: number
+    total_descontos: number
+    valor_liquido: number
+  }>
 }
 
 interface PDFGeneratorFolhaProps {
@@ -85,8 +94,7 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
               <tr style="background-color: #f0f0f0; border: 2px solid black;">
                 <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">COOPERADO</th>
                 <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR BRUTO</th>
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%</th>
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%</th>
+                ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
                 <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">DÉBITOS</th>
                 <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">TOTAL DESC.</th>
                 <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
@@ -95,21 +103,22 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
             <tbody>
               ${relatorio.cooperados
                 .map(
-                  (cooperado, index) => `
+                  (cooperado, index) => {
+                    const taxasCols = (cooperado.descontos_taxas ?? relatorio.taxas.map((t) => ({ nome: t.nome, valor: Number(cooperado.valor_bruto) * (Number(t.percentual) / 100) }))).map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")
+                    return `
                 <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
                   <td style="border: 1px solid black; padding: 6px;">${cooperado.cooperado_nome}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
-                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.desconto_inss).toFixed(2)}</td>
-                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.desconto_administrativo).toFixed(2)}</td>
+                  ${taxasCols}
                   <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_descontos).toFixed(2)}</td>
                   <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
-                </tr>
-              `,
+                </tr>`
+                  }
                 )
                 .join("")}
               <tr style="background-color: #e0e0e0; font-weight: bold;">
-                <td style="border: 2px solid black; padding: 6px;" colspan="6">TOTAL GERAL (VALOR LÍQUIDO)</td>
+                <td style="border: 2px solid black; padding: 6px;" colspan="${2 + relatorio.taxas.length + 2}">TOTAL GERAL (VALOR LÍQUIDO)</td>
                 <td style="border: 2px solid black; padding: 6px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
               </tr>
             </tbody>

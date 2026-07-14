@@ -192,12 +192,10 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
             <div style="margin-bottom: 5px;">
               <span style="font-weight: bold;">VALOR TOTAL FRETES: R$ ${relatorio.valor_bruto.toFixed(2)}</span>
             </div>
+            ${relatorio.taxas.map((t) => `
             <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO ADM ${relatorio.taxas.administrativo_percentual.toFixed(1)}%: R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
-            </div>
-            <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO INSS ${relatorio.taxas.inss_percentual.toFixed(1)}%: R$ ${relatorio.desconto_inss.toFixed(2)}</span>
-            </div>
+              <span style="font-weight: bold;">DESCONTO ${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%: R$ ${Number(t.valor).toFixed(2)}</span>
+            </div>`).join("")}
             ${
               relatorio.total_debitos > 0
                 ? `
