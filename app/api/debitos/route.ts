@@ -30,6 +30,8 @@ export async function GET() {
           d.status,
           TO_CHAR(d.data_baixa, 'YYYY-MM-DD') as data_baixa,
           d.observacao_baixa,
+          d.eh_parcelado,
+          d.quantidade_parcelas,
           c.nome as cooperado_nome,
           e.nome as empresa_nome
         FROM debitos d
@@ -59,14 +61,50 @@ export async function GET() {
         status: "pendente",
         data_baixa: null,
         observacao_baixa: null,
+        eh_parcelado: false,
+        quantidade_parcelas: 1,
       }))
     }
 
-    // Converter valores para números
-    const debitosFormatados = debitos.map((debito) => ({
-      ...debito,
-      valor: Number(debito.valor),
-    }))
+    // Converter valores para números e buscar parcelas se aplicável
+    const debitosFormatados = await Promise.all(
+      debitos.map(async (debito) => {
+        const formatted = {
+          ...debito,
+          valor: Number(debito.valor),
+          eh_parcelado: debito.eh_parcelado || false,
+          quantidade_parcelas: debito.quantidade_parcelas || 1,
+        }
+
+        // Se é parcelado, buscar as parcelas
+        if (formatted.eh_parcelado) {
+          try {
+            const parcelas = await sql`
+              SELECT 
+                id,
+                numero_parcela,
+                total_parcelas,
+                TO_CHAR(data_vencimento, 'YYYY-MM-DD') as data_vencimento,
+                valor_parcela,
+                status,
+                TO_CHAR(data_pagamento, 'YYYY-MM-DD') as data_pagamento
+              FROM debitos_parcelamento
+              WHERE debito_id = ${debito.id}
+              ORDER BY numero_parcela ASC
+            `
+            formatted.parcelas = parcelas.map((p) => ({
+              ...p,
+              valor_parcela: Number(p.valor_parcela),
+            }))
+          } catch (e) {
+            // Se a tabela de parcelas não existir, deixar vazio
+            formatted.parcelas = []
+          }
+        }
+
+        return formatted
+      }),
+    )
 
     return NextResponse.json(debitosFormatados)
   } catch (error) {
