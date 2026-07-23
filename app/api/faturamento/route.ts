@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       `
     }
 
-    return NextResponse.json(result.rows)
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Erro ao buscar faturamento:", error)
     return NextResponse.json({ error: "Erro ao buscar faturamento" }, { status: 500 })
@@ -148,13 +148,21 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor, observacao)
       VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor}, ${observacao || null})
-      RETURNING f.id, c.nome as cliente, f.documento_referencia, f.data_emissao, f.data_vencimento, f.valor, f.status, f.observacao, f.created_at, f.cliente_id
-      FROM faturamento f
-      LEFT JOIN clientes c ON f.cliente_id = c.id
-      WHERE f.id = (SELECT MAX(id) FROM faturamento)
+      RETURNING id, cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, created_at
     `
 
-    return NextResponse.json(result.rows[0], { status: 201 })
+    // Buscar o cliente para retornar junto
+    const faturaComCliente = result[0]
+    if (faturaComCliente && faturaComCliente.cliente_id) {
+      const cliente = await sql`
+        SELECT nome FROM clientes WHERE id = ${faturaComCliente.cliente_id}
+      `
+      if (cliente.length > 0) {
+        faturaComCliente.cliente = cliente[0].nome
+      }
+    }
+
+    return NextResponse.json(faturaComCliente, { status: 201 })
   } catch (error) {
     console.error("Erro ao criar faturamento:", error)
     return NextResponse.json({ error: "Erro ao criar faturamento" }, { status: 500 })
