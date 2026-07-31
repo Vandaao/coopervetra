@@ -120,11 +120,40 @@ export async function GET(request: NextRequest) {
     const total_km = fretes.reduce((sum, frete) => sum + Number(frete.km), 0)
     const valor_bruto = total_valor + total_chapada
 
-    // Calcular descontos
-    const desconto_inss = valor_bruto * 0.045 // 4.5%
-    const desconto_administrativo = valor_bruto * 0.06 // 6%
+    // Buscar TODAS as taxas ativas
+    let taxasList: Array<{ nome: string; percentual: number }> = [
+      { nome: "INSS", percentual: 4.5 },
+      { nome: "Administrativo", percentual: 6 },
+    ]
+
+    try {
+      const taxasResult = await sql`
+        SELECT nome, percentual FROM taxas_descontos WHERE ativo = true ORDER BY id ASC
+      `
+      if (taxasResult.length > 0) {
+        taxasList = taxasResult.map((t: any) => ({
+          nome: t.nome,
+          percentual: Number(t.percentual),
+        }))
+      }
+    } catch (e) {
+      console.error("Erro ao buscar taxas, usando valores padrão:", e)
+    }
+
+    // Calcular descontos — somar TODAS as taxas
+    const descontosTaxas = taxasList.map((taxa) => ({
+      nome: taxa.nome,
+      percentual: taxa.percentual,
+      valor: valor_bruto * (taxa.percentual / 100),
+    }))
+    const total_taxas = descontosTaxas.reduce((sum, t) => sum + t.valor, 0)
+
+    // Manter compat com campos legados
+    const desconto_inss = descontosTaxas.find((t) => t.nome.toLowerCase() === "inss")?.valor ?? 0
+    const desconto_administrativo = descontosTaxas.find((t) => t.nome.toLowerCase() === "administrativo")?.valor ?? 0
+
     const total_debitos = debitos.reduce((sum, debito) => sum + Number(debito.valor), 0)
-    const total_descontos = desconto_inss + desconto_administrativo + total_debitos
+    const total_descontos = total_taxas + total_debitos
     const valor_liquido = valor_bruto - total_descontos
 
     // Formatar fretes e débitos
@@ -155,6 +184,7 @@ export async function GET(request: NextRequest) {
       valor_liquido,
       fretes: fretesFormatados,
       debitos: debitosFormatados,
+      taxas: descontosTaxas,
     }
 
     return NextResponse.json(relatorio)

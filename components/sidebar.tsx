@@ -17,6 +17,7 @@ import {
   BarChart3,
   UserCog,
   FileText,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -94,6 +95,11 @@ export function Sidebar() {
       label: "Cooperados Ativos",
       href: "/relatorio-cooperados-ativos",
       icon: Users,
+    },
+    {
+      label: "Configurações",
+      href: "/configuracoes",
+      icon: Settings,
     },
     {
       label: "Backup",

@@ -102,17 +102,46 @@ export async function GET(request: NextRequest) {
       `
     }
 
+    // Buscar TODAS as taxas ativas
+    let taxasList: Array<{ nome: string; percentual: number }> = [
+      { nome: "INSS", percentual: 4.5 },
+      { nome: "Administrativo", percentual: 6 },
+    ]
+
+    try {
+      const taxasResult = await sql`
+        SELECT nome, percentual FROM taxas_descontos WHERE ativo = true ORDER BY id ASC
+      `
+      if (taxasResult.length > 0) {
+        taxasList = taxasResult.map((t: any) => ({
+          nome: t.nome,
+          percentual: Number(t.percentual),
+        }))
+      }
+    } catch (e) {
+      console.error("Erro ao buscar taxas, usando valores padrão:", e)
+    }
+
     // Processar dados por cooperado
     const cooperadosRelatorio = fretesCooperados.map((cooperado) => {
       const valorBruto = Number(cooperado.valor_bruto)
-      const descontoInss = valorBruto * 0.045 // 4.5%
-      const descontoAdministrativo = valorBruto * 0.06 // 6%
+
+      // Calcular cada taxa sobre o valor bruto
+      const descontosTaxas = taxasList.map((taxa) => ({
+        nome: taxa.nome,
+        percentual: taxa.percentual,
+        valor: valorBruto * (taxa.percentual / 100),
+      }))
+      const totalTaxas = descontosTaxas.reduce((sum, t) => sum + t.valor, 0)
+
+      const descontoInss = descontosTaxas.find((t) => t.nome.toLowerCase() === "inss")?.valor ?? 0
+      const descontoAdministrativo = descontosTaxas.find((t) => t.nome.toLowerCase() === "administrativo")?.valor ?? 0
 
       // Buscar débitos do cooperado
       const debitoCooperado = debitos.find((d) => d.cooperado_id === cooperado.cooperado_id)
       const totalDebitos = debitoCooperado ? Number(debitoCooperado.total_debitos) : 0
 
-      const totalDescontos = descontoInss + descontoAdministrativo + totalDebitos
+      const totalDescontos = totalTaxas + totalDebitos
       const valorLiquido = valorBruto - totalDescontos
 
       // Buscar fretes detalhados do cooperado
@@ -131,6 +160,7 @@ export async function GET(request: NextRequest) {
         valor_bruto: valorBruto,
         desconto_inss: descontoInss,
         desconto_administrativo: descontoAdministrativo,
+        descontos_taxas: descontosTaxas,
         total_debitos: totalDebitos,
         total_descontos: totalDescontos,
         valor_liquido: valorLiquido,
@@ -149,6 +179,18 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Calcular totais gerais das taxas
+    const totaisTaxas = taxasList.map((taxa) => {
+      const total = cooperadosRelatorio.reduce((sum, c) => {
+        const descontoTax = c.descontos_taxas.find((dt) => dt.nome.toLowerCase() === taxa.nome.toLowerCase())
+        return sum + (descontoTax?.valor ?? 0)
+      }, 0)
+      return {
+        nome: taxa.nome,
+        total: total,
+      }
+    })
+
     // Calcular totais gerais
     const totaisGerais = {
       total_cooperados: cooperadosRelatorio.length,
@@ -157,10 +199,17 @@ export async function GET(request: NextRequest) {
       total_valor_bruto: cooperadosRelatorio.reduce((sum, c) => sum + c.valor_bruto, 0),
       total_desconto_inss: cooperadosRelatorio.reduce((sum, c) => sum + c.desconto_inss, 0),
       total_desconto_administrativo: cooperadosRelatorio.reduce((sum, c) => sum + c.desconto_administrativo, 0),
+      total_descontos_taxas: totaisTaxas,
       total_debitos: cooperadosRelatorio.reduce((sum, c) => sum + c.total_debitos, 0),
       total_descontos: cooperadosRelatorio.reduce((sum, c) => sum + c.total_descontos, 0),
       total_valor_liquido: cooperadosRelatorio.reduce((sum, c) => sum + c.valor_liquido, 0),
     }
+
+    // Montar taxas com percentuais (sem valores individuais por cooperado)
+    const taxasComPercentuais = taxasList.map((taxa) => ({
+      nome: taxa.nome,
+      percentual: taxa.percentual,
+    }))
 
     const relatorio = {
       empresa_nome: empresa[0].nome,
@@ -168,6 +217,7 @@ export async function GET(request: NextRequest) {
       data_fim,
       cooperados: cooperadosRelatorio,
       totais: totaisGerais,
+      taxas: taxasComPercentuais,
     }
 
     return NextResponse.json(relatorio)

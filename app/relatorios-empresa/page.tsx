@@ -67,6 +67,7 @@ interface RelatorioEmpresaData {
     total_descontos: number
     total_valor_liquido: number
   }
+  taxas: Array<{ nome: string; percentual: number }>
 }
 
 export default function RelatoriosEmpresaPage() {
@@ -489,6 +490,16 @@ export default function RelatoriosEmpresaPage() {
                 </div>
               </div>
 
+              {/* Taxas aplicadas */}
+              <div className="print:hidden bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-wrap gap-3 items-center">
+                <span className="text-sm font-semibold text-blue-800">Taxas aplicadas:</span>
+                {relatorio.taxas.map((t) => (
+                  <span key={t.nome} className="text-sm bg-white border border-blue-200 rounded px-3 py-1 text-blue-700">
+                    {t.nome}: {Number(t.percentual).toFixed(2)}%
+                  </span>
+                ))}
+              </div>
+
               {/* Versão para tela */}
               <Card className="print:hidden">
                 <CardHeader>
@@ -640,8 +651,9 @@ export default function RelatoriosEmpresaPage() {
                         <th className="border border-black p-1 font-bold">FRETES</th>
                         <th className="border border-black p-1 font-bold">KM</th>
                         <th className="border border-black p-1 font-bold">VLR BRUTO</th>
-                        <th className="border border-black p-1 font-bold">INSS 4,5%</th>
-                        <th className="border border-black p-1 font-bold">ADM 6%</th>
+                        {relatorio.taxas.map((t) => (
+                          <th key={t.nome} className="border border-black p-1 font-bold">{t.nome.toUpperCase()} {Number(t.percentual).toFixed(1)}%</th>
+                        ))}
                         <th className="border border-black p-1 font-bold">DÉBITOS</th>
                         <th className="border border-black p-1 font-bold">VLR LÍQUIDO</th>
                       </tr>
@@ -653,12 +665,11 @@ export default function RelatoriosEmpresaPage() {
                           <td className="border border-black p-1 text-center">{cooperado.total_fretes}</td>
                           <td className="border border-black p-1 text-center">{cooperado.total_km}</td>
                           <td className="border border-black p-1 text-right">R$ {cooperado.valor_bruto.toFixed(2)}</td>
-                          <td className="border border-black p-1 text-right">
-                            R$ {cooperado.desconto_inss.toFixed(2)}
-                          </td>
-                          <td className="border border-black p-1 text-right">
-                            R$ {cooperado.desconto_administrativo.toFixed(2)}
-                          </td>
+                          {cooperado.descontos_taxas.map((taxa) => (
+                            <td key={taxa.nome} className="border border-black p-1 text-right">
+                              R$ {Number(taxa.valor).toFixed(2)}
+                            </td>
+                          ))}
                           <td className="border border-black p-1 text-right">
                             R$ {cooperado.total_debitos.toFixed(2)}
                           </td>
@@ -674,12 +685,11 @@ export default function RelatoriosEmpresaPage() {
                         <td className="border-2 border-black p-1 text-right">
                           R$ {relatorio.totais.total_valor_bruto.toFixed(2)}
                         </td>
-                        <td className="border-2 border-black p-1 text-right">
-                          R$ {relatorio.totais.total_desconto_inss.toFixed(2)}
-                        </td>
-                        <td className="border-2 border-black p-1 text-right">
-                          R$ {relatorio.totais.total_desconto_administrativo.toFixed(2)}
-                        </td>
+                        {relatorio.totais.total_descontos_taxas.map((taxa) => (
+                          <td key={taxa.nome} className="border-2 border-black p-1 text-right">
+                            R$ {Number(taxa.total).toFixed(2)}
+                          </td>
+                        ))}
                         <td className="border-2 border-black p-1 text-right">
                           R$ {relatorio.totais.total_debitos.toFixed(2)}
                         </td>

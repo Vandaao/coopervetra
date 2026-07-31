@@ -31,6 +31,7 @@ interface RelatorioData {
     descricao: string
     valor: number
   }>
+  taxas: Array<{ nome: string; percentual: number; valor: number }>
 }
 
 interface PDFGeneratorProps {
@@ -191,12 +192,10 @@ export function PDFGenerator({ relatorio, dataInicio, dataFim }: PDFGeneratorPro
             <div style="margin-bottom: 5px;">
               <span style="font-weight: bold;">VALOR TOTAL FRETES: R$ ${relatorio.valor_bruto.toFixed(2)}</span>
             </div>
+            ${relatorio.taxas.map((t) => `
             <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO ADM 6%: R$ ${relatorio.desconto_administrativo.toFixed(2)}</span>
-            </div>
-            <div style="margin-bottom: 5px;">
-              <span style="font-weight: bold;">DESCONTO INSS 4,5%: R$ ${relatorio.desconto_inss.toFixed(2)}</span>
-            </div>
+              <span style="font-weight: bold;">DESCONTO ${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%: R$ ${Number(t.valor).toFixed(2)}</span>
+            </div>`).join("")}
             ${
               relatorio.total_debitos > 0
                 ? `

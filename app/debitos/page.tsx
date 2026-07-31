@@ -34,6 +34,7 @@ import {
   FileText,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { DebitosParcellasDialog } from "@/components/debitos-parcelas-dialog"
 
 interface Cooperado {
   id: number
@@ -43,6 +44,16 @@ interface Cooperado {
 interface Empresa {
   id: number
   nome: string
+}
+
+interface Parcela {
+  id: number
+  numero_parcela: number
+  total_parcelas: number
+  data_vencimento: string
+  valor_parcela: number
+  status: "pendente" | "pago" | "vencida"
+  data_pagamento?: string
 }
 
 interface Debito {
@@ -55,6 +66,9 @@ interface Debito {
   status: "pendente" | "pago"
   data_baixa: string | null
   observacao_baixa: string | null
+  eh_parcelado?: boolean
+  quantidade_parcelas?: number
+  parcelas?: Parcela[]
 }
 
 export default function DebitosPage() {
@@ -85,10 +99,56 @@ export default function DebitosPage() {
   const [loadingPagamento, setLoadingPagamento] = useState(false)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [isExecutingMigration, setIsExecutingMigration] = useState(false)
+  const [needsMigrationParcelamento, setNeedsMigrationParcelamento] = useState(false)
+  const [isExecutingMigrationParcelamento, setIsExecutingMigrationParcelamento] = useState(false)
   const [duplicadosEncontrados, setDuplicadosEncontrados] = useState<Debito[]>([])
   const [mostrarAlertaDuplicado, setMostrarAlertaDuplicado] = useState(false)
   const [confirmarLancamentoDuplicado, setConfirmarLancamentoDuplicado] = useState(false)
+  const [ehParcelado, setEhParcelado] = useState(false)
+  const [quantidadeParcelas, setQuantidadeParcelas] = useState("1")
+  const [dataVencimentoPrimeira, setDataVencimentoPrimeira] = useState("")
+  const [debitoParcellasOpen, setDebitoParcellasOpen] = useState(false)
+  const [debitoSelecionadoParcelas, setDebitoSelecionadoParcelas] = useState<Debito | null>(null)
   const { toast } = useToast()
+
+  const executeMigrationParcelamento = async () => {
+    setIsExecutingMigrationParcelamento(true)
+    try {
+      const response = await fetch("/api/debitos/parcelamento/migrar", {
+        method: "POST",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        console.log("Migração de parcelamento executada com sucesso:", data)
+        setNeedsMigrationParcelamento(false)
+        toast({
+          title: "Sucesso",
+          description: data.message,
+        })
+        await fetchDebitos()
+        return true
+      } else {
+        console.error("Erro ao executar migração de parcelamento:", data)
+        throw new Error(data.error || "Erro ao executar migração")
+      }
+    } catch (error) {
+      console.error("Erro na migração de parcelamento:", error)
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao executar migração de parcelamento",
+        variant: "destructive",
+      })
+      return false
+    } finally {
+      setIsExecutingMigrationParcelamento(false)
+    }
+  }
 
   const executeMigration = async () => {
     setIsExecutingMigration(true)
@@ -152,11 +212,30 @@ export default function DebitosPage() {
     }
   }
 
+  const checkMigrationStatusParcelamento = async () => {
+    try {
+      const response = await fetch("/api/debitos/parcelamento/migrar", {
+        method: "OPTIONS",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      }).catch(() => ({ ok: false }))
+
+      // Sempre tentar verificar via POST (a API retorna alreadyExists se tabela existe)
+      // Por enquanto, deixar como false e o botão ficará visível
+      setNeedsMigrationParcelamento(true)
+    } catch {
+      setNeedsMigrationParcelamento(true)
+    }
+  }
+
   useEffect(() => {
     fetchDebitos()
     fetchCooperados()
     fetchEmpresas()
     checkMigrationStatus()
+    checkMigrationStatusParcelamento()
   }, [])
 
   const fetchDebitos = async () => {
@@ -241,6 +320,9 @@ export default function DebitosPage() {
     setDescricao("")
     setData("")
     setValor("")
+    setEhParcelado(false)
+    setQuantidadeParcelas("1")
+    setDataVencimentoPrimeira("")
     setEditingDebito(null)
     setConfirmarLancamentoDuplicado(false)
     setDuplicadosEncontrados([])
@@ -290,38 +372,74 @@ export default function DebitosPage() {
     setLoading(true)
 
     try {
-      const url = editingDebito ? `/api/debitos/${editingDebito.id}` : "/api/debitos"
-      const method = editingDebito ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-        body: JSON.stringify({
-          cooperado_id: Number.parseInt(cooperadoId),
-          empresa_id: Number.parseInt(empresaId),
-          descricao,
-          data,
-          valor: Number.parseFloat(valor),
-        }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Sucesso",
-          description: editingDebito ? "Débito atualizado com sucesso" : "Débito cadastrado com sucesso",
+      // Se é parcelado, usar API de parcelamento
+      if (ehParcelado && !editingDebito) {
+        const response = await fetch("/api/debitos/parcelamento", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          body: JSON.stringify({
+            cooperado_id: Number.parseInt(cooperadoId),
+            empresa_id: Number.parseInt(empresaId),
+            descricao,
+            data,
+            valor_total: Number.parseFloat(valor),
+            quantidade_parcelas: Number.parseInt(quantidadeParcelas),
+            data_vencimento_primeira: dataVencimentoPrimeira,
+          }),
         })
-        resetForm()
-        setIsDialogOpen(false)
-        // Aguardar um pouco e recarregar
-        await new Promise((resolve) => setTimeout(resolve, 300))
-        await fetchDebitos()
+
+        if (response.ok) {
+          const data = await response.json()
+          toast({
+            title: "Sucesso",
+            description: data.message,
+          })
+          resetForm()
+          setIsDialogOpen(false)
+          await new Promise((resolve) => setTimeout(resolve, 300))
+          await fetchDebitos()
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Erro ao salvar débito parcelado")
+        }
       } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Erro ao salvar")
+        // Débito simples ou edição
+        const url = editingDebito ? `/api/debitos/${editingDebito.id}` : "/api/debitos"
+        const method = editingDebito ? "PUT" : "POST"
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          body: JSON.stringify({
+            cooperado_id: Number.parseInt(cooperadoId),
+            empresa_id: Number.parseInt(empresaId),
+            descricao,
+            data,
+            valor: Number.parseFloat(valor),
+          }),
+        })
+
+        if (response.ok) {
+          toast({
+            title: "Sucesso",
+            description: editingDebito ? "Débito atualizado com sucesso" : "Débito cadastrado com sucesso",
+          })
+          resetForm()
+          setIsDialogOpen(false)
+          await new Promise((resolve) => setTimeout(resolve, 300))
+          await fetchDebitos()
+        } else {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Erro ao salvar")
+        }
       }
     } catch (error) {
       console.error("Erro ao salvar débito:", error)
@@ -1015,6 +1133,35 @@ export default function DebitosPage() {
             </div>
           )}
 
+          {needsMigrationParcelamento && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    Novo recurso disponível: Débitos Parcelados!
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Clique abaixo para ativar o suporte a parcelamento de débitos.
+                  </p>
+                  <div className="mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-300"
+                      onClick={executeMigrationParcelamento}
+                      disabled={isExecutingMigrationParcelamento}
+                    >
+                      {isExecutingMigrationParcelamento ? "Ativando..." : "Ativar Parcelamento"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cards de Estatísticas */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card>
@@ -1161,6 +1308,56 @@ export default function DebitosPage() {
                             required
                           />
                         </div>
+
+                        {/* Opção de Parcelamento */}
+                        {!editingDebito && (
+                          <>
+                            <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                              <Label className="flex items-center gap-2 mb-3">
+                                <input
+                                  type="checkbox"
+                                  checked={ehParcelado}
+                                  onChange={(e) => setEhParcelado(e.target.checked)}
+                                  className="h-4 w-4 rounded border-gray-300"
+                                />
+                                <span>Criar como débito parcelado</span>
+                              </Label>
+
+                              {ehParcelado && (
+                                <div className="space-y-3 mt-3">
+                                  <div>
+                                    <Label htmlFor="quantidade-parcelas">Quantidade de Parcelas</Label>
+                                    <Input
+                                      id="quantidade-parcelas"
+                                      type="number"
+                                      min="2"
+                                      max="60"
+                                      value={quantidadeParcelas}
+                                      onChange={(e) => setQuantidadeParcelas(e.target.value)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="data-primeira-parcela">Vencimento 1ª Parcela</Label>
+                                    <Input
+                                      id="data-primeira-parcela"
+                                      type="date"
+                                      value={dataVencimentoPrimeira}
+                                      onChange={(e) => setDataVencimentoPrimeira(e.target.value)}
+                                    />
+                                  </div>
+                                  {quantidadeParcelas && valor && (
+                                    <div className="text-sm bg-white p-2 rounded border">
+                                      <p className="text-gray-600">
+                                        Valor de cada parcela: <strong>R$ {(Number(valor) / Number(quantidadeParcelas)).toFixed(2)}</strong>
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+
                         <div className="flex gap-2">
                           <Button type="submit" disabled={loading} className="flex-1">
                             {loading ? "Salvando..." : editingDebito ? "Atualizar" : "Cadastrar"}
@@ -1364,19 +1561,37 @@ export default function DebitosPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[90px]">Parcelas</TableHead>
                       <TableHead className="min-w-[120px]">Cooperado</TableHead>
                       <TableHead className="min-w-[120px]">Empresa</TableHead>
                       <TableHead className="min-w-[150px]">Descrição</TableHead>
                       <TableHead className="min-w-[100px]">Data</TableHead>
                       <TableHead className="min-w-[100px]">Valor</TableHead>
                       <TableHead className="min-w-[100px]">Data Baixa</TableHead>
-                      <TableHead className="min-w-[180px]">Ações</TableHead>
+                      <TableHead className="min-w-[200px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {debitosFiltrados.map((debito) => (
                       <TableRow key={debito.id}>
                         <TableCell>{getStatusBadge(debito.status)}</TableCell>
+                        <TableCell>
+                          {debito.eh_parcelado && debito.parcelas ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-7"
+                              onClick={() => {
+                                setDebitoSelecionadoParcelas(debito)
+                                setDebitoParcellasOpen(true)
+                              }}
+                            >
+                              {debito.parcelas.filter((p) => p.status === "pago").length}/{debito.quantidade_parcelas}
+                            </Button>
+                          ) : (
+                            <span className="text-sm text-gray-500">Único</span>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{debito.cooperado_nome}</TableCell>
                         <TableCell>{debito.empresa_nome}</TableCell>
                         <TableCell className="max-w-[200px] truncate" title={debito.descricao}>
@@ -1524,6 +1739,20 @@ export default function DebitosPage() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Dialog de Parcelas */}
+          {debitoSelecionadoParcelas && debitoSelecionadoParcelas.parcelas && (
+            <DebitosParcellasDialog
+              open={debitoParcellasOpen}
+              onOpenChange={setDebitoParcellasOpen}
+              debitoId={debitoSelecionadoParcelas.id}
+              descricao={debitoSelecionadoParcelas.descricao}
+              parcelas={debitoSelecionadoParcelas.parcelas}
+              onParcelaPaga={() => {
+                fetchDebitos()
+              }}
+            />
+          )}
         </div>
       </main>
     </div>

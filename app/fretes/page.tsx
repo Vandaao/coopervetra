@@ -14,10 +14,11 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight, Upload } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import AuthGuard from "@/components/auth-guard"
+import { AuthGuard } from "@/components/auth-guard"
 import { Calculadora } from "@/components/calculadora"
+import { ImportarFretesDialog } from "@/components/importar-fretes-dialog"
 
 interface Cooperado {
   id: number
@@ -70,6 +71,7 @@ export default function FretesPage() {
   const [itensPorPagina] = useState(10)
 
   const [paginaAtual, setPaginaAtual] = useState(1)
+  const [isImportarDialogOpen, setIsImportarDialogOpen] = useState(false)
 
   const { toast } = useToast()
 
@@ -614,6 +616,10 @@ export default function FretesPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Novo Frete
                   </Button>
+                  <Button onClick={() => setIsImportarDialogOpen(true)} variant="outline" className="flex-1 sm:flex-none">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Importar Fretes
+                  </Button>
                 </div>
               </div>
 
@@ -998,8 +1004,16 @@ export default function FretesPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Dialog de Importação */}
+          <ImportarFretesDialog
+            open={isImportarDialogOpen}
+            onOpenChange={setIsImportarDialogOpen}
+            empresas={empresas}
+            onImportSuccess={fetchFretes}
+          />
         </main>
-      </div>
+    </div>
     </AuthGuard>
   )
 }
