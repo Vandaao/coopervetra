@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import LayoutShell from "@/components/layout-shell"
 
 interface Taxa {
   id: number
@@ -140,7 +139,6 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <LayoutShell>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -253,6 +251,5 @@ export default function ConfiguracoesPage() {
           </CardContent>
         </Card>
       </div>
-    </LayoutShell>
-  )
+     )
 }
