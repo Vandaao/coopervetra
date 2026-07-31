@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/select"
 import { Plus, Edit, Trash2, Printer, Users } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
-import LayoutShell from "@/components/layout-shell"
 
 interface Cliente {
   id: number
