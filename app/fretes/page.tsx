@@ -1012,8 +1012,7 @@ export default function FretesPage() {
             empresas={empresas}
             onImportSuccess={fetchFretes}
           />
-        </div>
-      </main>
+        </main>
     </div>
     </AuthGuard>
   )
