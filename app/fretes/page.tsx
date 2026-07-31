@@ -1015,5 +1015,6 @@ export default function FretesPage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }
