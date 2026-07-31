@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { encontrarCooperadoMaisProximo, type CooperadoParaComparacao } from "@/lib/cooperado-name-matcher"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -49,11 +50,6 @@ function parseCSV(content: string): LinhaFrete[] {
   return rows
 }
 
-// Função auxiliar simples para limpar strings
-function cleanString(str: string | number | any): string {
-  return String(str || "").trim()
-}
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -83,14 +79,20 @@ export async function POST(request: NextRequest) {
     }
 
     const errors: string[] = []
+    const matchesAproximados: Array<{
+      linha: number
+      informado: string
+      cadastrado: string
+      similaridade: number
+    }> = []
     let imported = 0
 
-    // Buscar todos os cooperados para map de nomes -> IDs
-    const cooperados = await sql`SELECT id, nome FROM cooperados`
-    const cooperadoMap = new Map()
-    cooperados.forEach((c) => {
-      cooperadoMap.set(c.nome.toLowerCase(), c.id)
-    })
+    // Carrega os cooperados uma única vez e compara os nomes de forma normalizada/aproximada.
+    const cooperadosResultado = await sql`SELECT id, nome FROM cooperados ORDER BY nome`
+    const cooperados: CooperadoParaComparacao[] = cooperadosResultado.map((cooperado) => ({
+      id: Number(cooperado.id),
+      nome: String(cooperado.nome),
+    }))
 
     // Processar cada linha
     for (let i = 0; i < rows.length; i++) {
@@ -124,13 +126,43 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Buscar cooperado
-        const cooperadoNormalized = row.cooperado.toLowerCase().trim()
-        const cooperadoId = cooperadoMap.get(cooperadoNormalized)
+        // Buscar o cadastro exato ou o cooperado mais próximo, com proteção contra ambiguidades.
+        const resultadoCooperado = encontrarCooperadoMaisProximo(row.cooperado, cooperados)
 
-        if (!cooperadoId) {
-          errors.push(`Linha ${linhaNum}: Cooperado "${row.cooperado}" não encontrado`)
+        if (resultadoCooperado.status === "not_found") {
+          const sugestoes = resultadoCooperado.candidatos
+            .filter((candidato) => candidato.score >= 0.5)
+            .map((candidato) => `${candidato.cooperado.nome} (${Math.round(candidato.score * 100)}%)`)
+            .join(", ")
+
+          errors.push(
+            `Linha ${linhaNum}: Cooperado "${row.cooperado}" não encontrado${
+              sugestoes ? `. Mais próximos: ${sugestoes}` : ""
+            }`,
+          )
           continue
+        }
+
+        if (resultadoCooperado.status === "ambiguous") {
+          const sugestoes = resultadoCooperado.candidatos
+            .map((candidato) => `${candidato.cooperado.nome} (${Math.round(candidato.score * 100)}%)`)
+            .join(", ")
+
+          errors.push(
+            `Linha ${linhaNum}: O nome "${row.cooperado}" ficou ambíguo. Possíveis cadastros: ${sugestoes}. Ajuste o nome na planilha.`,
+          )
+          continue
+        }
+
+        const cooperadoId = resultadoCooperado.cooperado.id
+
+        if (resultadoCooperado.aproximado) {
+          matchesAproximados.push({
+            linha: linhaNum,
+            informado: row.cooperado.trim(),
+            cadastrado: resultadoCooperado.cooperado.nome,
+            similaridade: Math.round(resultadoCooperado.score * 100),
+          })
         }
 
         // Formatar data (aceita DD/MM/YYYY ou YYYY-MM-DD)
@@ -174,7 +206,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       imported,
       errors: errors.length > 0 ? errors : undefined,
-      message: `${imported} frete(s) importado(s) com sucesso${errors.length > 0 ? ` (${errors.length} erro(s))` : ""}`,
+      matchesAproximados: matchesAproximados.length > 0 ? matchesAproximados : undefined,
+      message: `${imported} frete(s) importado(s) com sucesso${
+        matchesAproximados.length > 0 ? ` (${matchesAproximados.length} nome(s) associado(s) por aproximação)` : ""
+      }${errors.length > 0 ? ` (${errors.length} erro(s))` : ""}`,
     })
   } catch (error) {
     console.error("Erro ao importar fretes:", error)
