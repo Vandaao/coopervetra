@@ -32,12 +32,6 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
     message?: string
     imported?: number
     errors?: string[]
-    matchesAproximados?: Array<{
-      linha: number
-      informado: string
-      cadastrado: string
-      similaridade: number
-    }>
   }>({ status: "idle" })
   const { toast } = useToast()
 
@@ -90,24 +84,21 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
       const data = await response.json()
 
       if (response.ok) {
-        const quantidadeAproximados = data.matchesAproximados?.length || 0
-
         setImportStatus({
           status: "success",
-          message: data.message || `${data.imported} fretes importados com sucesso!`,
+          message: `${data.imported} fretes importados com sucesso!`,
           imported: data.imported,
-          errors: data.errors || [],
-          matchesAproximados: data.matchesAproximados || [],
         })
 
         toast({
-          title: "Importação concluída",
-          description: `${data.imported} fretes importados${
-            quantidadeAproximados > 0 ? ` e ${quantidadeAproximados} nomes associados por aproximação` : ""
-          }.`,
+          title: "Sucesso",
+          description: `${data.imported} fretes foram importados!`,
         })
 
-        onImportSuccess()
+        setTimeout(() => {
+          onImportSuccess()
+          handleClose()
+        }, 1500)
       } else {
         setImportStatus({
           status: "error",
@@ -229,39 +220,9 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
         )}
 
         {importStatus.status === "success" && (
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-green-500" />
-              <p className="text-sm text-center text-gray-700">{importStatus.message}</p>
-            </div>
-
-            {importStatus.matchesAproximados && importStatus.matchesAproximados.length > 0 && (
-              <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-                <p className="mb-2 text-xs font-semibold text-blue-900">Nomes associados automaticamente:</p>
-                <ul className="max-h-36 space-y-1 overflow-y-auto text-xs text-blue-800">
-                  {importStatus.matchesAproximados.map((match, idx) => (
-                    <li key={`${match.linha}-${idx}`}>
-                      • Linha {match.linha}: “{match.informado}” → <strong>{match.cadastrado}</strong> ({match.similaridade}%)
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {importStatus.errors && importStatus.errors.length > 0 && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <p className="mb-2 text-xs font-semibold text-amber-900">Linhas não importadas:</p>
-                <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-amber-800">
-                  {importStatus.errors.map((error, idx) => (
-                    <li key={idx}>• {error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <Button onClick={handleClose} className="w-full">
-              Concluir
-            </Button>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <CheckCircle className="h-8 w-8 text-green-500" />
+            <p className="text-sm text-gray-600">{importStatus.message}</p>
           </div>
         )}
 
