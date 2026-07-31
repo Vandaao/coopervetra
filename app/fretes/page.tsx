@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Trash2, Edit, CheckCircle, RefreshCw, AlertCircle, XCircle, ChevronLeft, ChevronRight, Upload } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import AuthGuard from "@/components/auth-guard"
+import { AuthGuard } from "@/components/auth-guard"
 import { Calculadora } from "@/components/calculadora"
 import { ImportarFretesDialog } from "@/components/importar-fretes-dialog"
 
