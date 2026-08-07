@@ -84,37 +84,37 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px; text-align: center;">
-        <div style="border: 1px solid black; padding: 6px;">
-          <p style="font-size: 8px; font-weight: bold; margin: 0;">COOPERADOS</p>
-          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">${relatorio.totais.total_cooperados}</p>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; text-align: center;">
+        <div style="border: 1px solid black; padding: 8px;">
+          <p style="font-size: 9px; font-weight: bold; margin: 0;">COOPERADOS</p>
+          <p style="font-size: 14px; font-weight: bold; margin: 4px 0;">${relatorio.totais.total_cooperados}</p>
         </div>
-        <div style="border: 1px solid black; padding: 6px;">
-          <p style="font-size: 8px; font-weight: bold; margin: 0;">TOTAL FRETES</p>
-          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">${relatorio.totais.total_fretes}</p>
+        <div style="border: 1px solid black; padding: 8px;">
+          <p style="font-size: 9px; font-weight: bold; margin: 0;">TOTAL FRETES</p>
+          <p style="font-size: 14px; font-weight: bold; margin: 4px 0;">${relatorio.totais.total_fretes}</p>
         </div>
-        <div style="border: 1px solid black; padding: 6px;">
-          <p style="font-size: 8px; font-weight: bold; margin: 0;">VALOR BRUTO</p>
-          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">R$ ${relatorio.totais.total_valor_bruto.toFixed(2)}</p>
+        <div style="border: 1px solid black; padding: 8px;">
+          <p style="font-size: 9px; font-weight: bold; margin: 0;">VALOR BRUTO</p>
+          <p style="font-size: 14px; font-weight: bold; margin: 4px 0;">R$ ${relatorio.totais.total_valor_bruto.toFixed(2)}</p>
         </div>
-        <div style="border: 1px solid black; padding: 6px;">
-          <p style="font-size: 8px; font-weight: bold; margin: 0;">VALOR LÍQUIDO</p>
-          <p style="font-size: 12px; font-weight: bold; margin: 3px 0;">R$ ${relatorio.totais.total_valor_liquido.toFixed(2)}</p>
+        <div style="border: 1px solid black; padding: 8px;">
+          <p style="font-size: 9px; font-weight: bold; margin: 0;">VALOR LÍQUIDO</p>
+          <p style="font-size: 14px; font-weight: bold; margin: 4px 0;">R$ ${relatorio.totais.total_valor_liquido.toFixed(2)}</p>
         </div>
       </div>
 
-      <div style="margin-bottom: 12px;">
-        <h3 style="font-size: 11px; font-weight: bold; margin-bottom: 8px; background-color: #f0f0f0; padding: 4px;">RESUMO POR COOPERADO</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
+      <div style="margin-bottom: 14px;">
+        <h3 style="font-size: 12px; font-weight: bold; margin-bottom: 8px; background-color: #f0f0f0; padding: 5px;">RESUMO POR COOPERADO</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px; table-layout: auto;">
           <thead>
             <tr style="background-color: #e8e8e8;">
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: left;">COOPERADO</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: center;">FRETES</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: center;">KM</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">VLR BRUTO</th>
-              ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">DÉBITOS</th>
-              <th style="border: 1px solid black; padding: 3px; font-weight: bold; text-align: right;">VLR LÍQUIDO</th>
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: left; white-space: nowrap;">COOPERADO</th>
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: center; white-space: nowrap;">FRETES</th>
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: center; white-space: nowrap;">KM</th>
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: right; white-space: nowrap;">VLR BRUTO</th>
+              ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: right; white-space: nowrap;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: right; white-space: nowrap;">DÉBITOS</th>
+              <th style="border: 1px solid black; padding: 5px; font-weight: bold; text-align: right; white-space: nowrap;">VLR LÍQUIDO</th>
             </tr>
           </thead>
           <tbody>
@@ -122,25 +122,25 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
               .map(
                 (cooperado) => `
               <tr>
-                <td style="border: 1px solid black; padding: 2px;">${cooperado.cooperado_nome}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: center;">${cooperado.total_fretes}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: center;">${cooperado.total_km}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.valor_bruto.toFixed(2)}</td>
-                ${cooperado.descontos_taxas.map((taxa) => `<td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${Number(taxa.valor).toFixed(2)}</td>`).join("")}
-                <td style="border: 1px solid black; padding: 2px; text-align: right;">R$ ${cooperado.total_debitos.toFixed(2)}</td>
-                <td style="border: 1px solid black; padding: 2px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+                <td style="border: 1px solid black; padding: 4px; white-space: nowrap;">${cooperado.cooperado_nome}</td>
+                <td style="border: 1px solid black; padding: 4px; text-align: center;">${cooperado.total_fretes}</td>
+                <td style="border: 1px solid black; padding: 4px; text-align: center;">${cooperado.total_km}</td>
+                <td style="border: 1px solid black; padding: 4px; text-align: right; white-space: nowrap;">R$ ${cooperado.valor_bruto.toFixed(2)}</td>
+                ${cooperado.descontos_taxas.map((taxa) => `<td style="border: 1px solid black; padding: 4px; text-align: right; white-space: nowrap;">R$ ${Number(taxa.valor).toFixed(2)}</td>`).join("")}
+                <td style="border: 1px solid black; padding: 4px; text-align: right; white-space: nowrap;">R$ ${cooperado.total_debitos.toFixed(2)}</td>
+                <td style="border: 1px solid black; padding: 4px; text-align: right; font-weight: bold; white-space: nowrap;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
               </tr>
             `,
               )
               .join("")}
             <tr style="background-color: #f0f0f0; font-weight: bold;">
-              <td style="border: 2px solid black; padding: 3px;">TOTAL GERAL</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: center;">${relatorio.totais.total_fretes}</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: center;">${relatorio.totais.total_km}</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_valor_bruto.toFixed(2)}</td>
-              ${relatorio.totais.total_descontos_taxas.map((taxa) => `<td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${Number(taxa.total).toFixed(2)}</td>`).join("")}
-              <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_debitos.toFixed(2)}</td>
-              <td style="border: 2px solid black; padding: 3px; text-align: right;">R$ ${relatorio.totais.total_valor_liquido.toFixed(2)}</td>
+              <td style="border: 2px solid black; padding: 5px;">TOTAL GERAL</td>
+              <td style="border: 2px solid black; padding: 5px; text-align: center;">${relatorio.totais.total_fretes}</td>
+              <td style="border: 2px solid black; padding: 5px; text-align: center;">${relatorio.totais.total_km}</td>
+              <td style="border: 2px solid black; padding: 5px; text-align: right; white-space: nowrap;">R$ ${relatorio.totais.total_valor_bruto.toFixed(2)}</td>
+              ${relatorio.totais.total_descontos_taxas.map((taxa) => `<td style="border: 2px solid black; padding: 5px; text-align: right; white-space: nowrap;">R$ ${Number(taxa.total).toFixed(2)}</td>`).join("")}
+              <td style="border: 2px solid black; padding: 5px; text-align: right; white-space: nowrap;">R$ ${relatorio.totais.total_debitos.toFixed(2)}</td>
+              <td style="border: 2px solid black; padding: 5px; text-align: right; white-space: nowrap;">R$ ${relatorio.totais.total_valor_liquido.toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
@@ -169,7 +169,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
       const { default: html2canvas } = await import("html2canvas")
 
       const printContent = document.createElement("div")
-      printContent.style.width = "210mm"
+      printContent.style.width = "297mm"
       printContent.style.padding = "10mm"
       printContent.style.margin = "0"
       printContent.style.backgroundColor = "white"
@@ -190,7 +190,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
         allowTaint: true,
         backgroundColor: "#ffffff",
         windowHeight: 1123,
-        windowWidth: 794,
+        windowWidth: 1123,
         logging: false,
       })
 
@@ -232,7 +232,7 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
       const { default: html2canvas } = await import("html2canvas")
 
       const pdfContent = document.createElement("div")
-      pdfContent.style.width = "210mm"
+      pdfContent.style.width = "297mm"
       pdfContent.style.padding = "10mm"
       pdfContent.style.margin = "0"
       pdfContent.style.backgroundColor = "white"
@@ -253,22 +253,22 @@ export function PDFGeneratorEmpresa({ relatorio }: PDFGeneratorEmpresaProps) {
         allowTaint: true,
         backgroundColor: "#ffffff",
         windowHeight: 1123,
-        windowWidth: 794,
+        windowWidth: 1123,
         logging: false,
       })
 
       document.body.removeChild(pdfContent)
 
       const pdf = new jsPDF({
-        orientation: "p",
+        orientation: "l",
         unit: "mm",
         format: "a4",
         compress: true,
       })
 
       const imgData = canvas.toDataURL("image/png")
-      const imgWidth = 210
-      const pageHeight = 297
+      const imgWidth = 297
+      const pageHeight = 210
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       let heightLeft = imgHeight
 
