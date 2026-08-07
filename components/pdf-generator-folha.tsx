@@ -78,15 +78,12 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
         </div>
 
         <div style="margin-bottom: 20px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <table style="width: 100%; border-collapse: collapse;">
             <thead>
-              <tr style="background-color: #f0f0f0; border: 2px solid black;">
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">COOPERADO</th>
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR BRUTO</th>
-                ${relatorio.taxas.map((t) => `<th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">${t.nome.toUpperCase()} ${Number(t.percentual).toFixed(1)}%</th>`).join("")}
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">DÉBITOS</th>
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">TOTAL DESC.</th>
-                <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
+              <tr style="border: 2px solid black;">
+                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: left;">COOPERADO</th>
+                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: center;">CONTA BANCÁRIA</th>
+                <th style="border: 1px solid black; padding: 12px; font-weight: bold; text-align: right;">VALOR LÍQUIDO</th>
               </tr>
             </thead>
             <tbody>
@@ -94,18 +91,16 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
                 .map(
                   (cooperado, index) => `
                 <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
-                  <td style="border: 1px solid black; padding: 6px;">${cooperado.cooperado_nome}</td>
-                  <td style="border: 1px solid black; padding: 6px; text-align: right;">R$ ${Number(cooperado.valor_bruto).toFixed(2)}</td>
-                  ${cooperado.descontos_taxas.map((t: any) => `<td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(t.valor).toFixed(2)}</td>`).join("")}
-                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_debitos).toFixed(2)}</td>
-                  <td style="border: 1px solid black; padding: 6px; text-align: right; color: #dc2626;">R$ ${Number(cooperado.total_descontos).toFixed(2)}</td>
-                  <td style="border: 1px solid black; padding: 6px; text-align: right; font-weight: bold; ${cooperado.valor_liquido < 0 ? "color: #dc2626;" : "color: #16a34a;"}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
-                </tr>`
+                  <td style="border: 1px solid black; padding: 12px;">${cooperado.cooperado_nome}</td>
+                  <td style="border: 1px solid black; padding: 12px; text-align: center;">${cooperado.conta_bancaria}</td>
+                  <td style="border: 1px solid black; padding: 12px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+                </tr>
+              `,
                 )
                 .join("")}
-              <tr style="background-color: #e0e0e0; font-weight: bold;">
-                <td style="border: 2px solid black; padding: 6px;" colspan="${2 + relatorio.taxas.length + 2}">TOTAL GERAL (VALOR LÍQUIDO)</td>
-                <td style="border: 2px solid black; padding: 6px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
+              <tr style="background-color: #e0e0e0; font-weight: bold; font-size: 16px;">
+                <td style="border: 2px solid black; padding: 12px;" colspan="2">TOTAL GERAL</td>
+                <td style="border: 2px solid black; padding: 12px; text-align: right;">R$ ${relatorio.total_geral.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
