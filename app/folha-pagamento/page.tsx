@@ -382,11 +382,7 @@ export default function FolhaPagamentoPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Cooperado</TableHead>
-                        <TableHead className="text-right">Valor Bruto</TableHead>
-                        {relatorio.taxas.map((t) => (
-                          <TableHead key={t.nome} className="text-right">{t.nome} {Number(t.percentual).toFixed(1)}%</TableHead>
-                        ))}
-                        <TableHead className="text-right">Débitos</TableHead>
+                        <TableHead className="text-center">Conta Bancária</TableHead>
                         <TableHead className="text-right">Valor Líquido</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -394,19 +390,15 @@ export default function FolhaPagamentoPage() {
                       {relatorio.cooperados.map((cooperado) => (
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
-                          <TableCell className="text-right">R$ {Number(cooperado.valor_bruto).toFixed(2)}</TableCell>
-                          {cooperado.descontos_taxas.map((t: any) => (
-                            <TableCell key={t.nome} className="text-right text-red-600">R$ {Number(t.valor).toFixed(2)}</TableCell>
-                          ))}
-                          <TableCell className="text-right text-red-600">R$ {Number(cooperado.total_debitos).toFixed(2)}</TableCell>
-                          <TableCell className={`text-right font-bold ${cooperado.valor_liquido < 0 ? "text-red-600" : "text-green-600"}`}>
+                          <TableCell className="text-center">{cooperado.conta_bancaria}</TableCell>
+                          <TableCell className="text-right font-bold">
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-gray-50 font-bold text-base">
-                        <TableCell colSpan={2 + relatorio.taxas.length + 1}>TOTAL GERAL</TableCell>
-                        <TableCell className={`text-right ${relatorio.total_geral < 0 ? "text-red-600" : "text-green-600"}`}>R$ {relatorio.total_geral.toFixed(2)}</TableCell>
+                        <TableCell colSpan={2}>TOTAL GERAL</TableCell>
+                        <TableCell className="text-right">R$ {relatorio.total_geral.toFixed(2)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
