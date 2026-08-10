@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Printer,
   FileText,
+  FileSpreadsheet,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { DebitosParcellasDialog } from "@/components/debitos-parcelas-dialog"
@@ -746,6 +747,80 @@ export default function DebitosPage() {
     setMostrarRelatorio(true)
   }
 
+  const handleExportarXls = () => {
+    if (debitosFiltrados.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Nenhum débito encontrado com os filtros selecionados",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const escaparHtml = (valor: unknown) =>
+      String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+
+    const formatarDataXls = (dataString: string | null) => {
+      if (!dataString) return "-"
+      if (dataString.includes("-") && dataString.length === 10) {
+        const [ano, mes, dia] = dataString.split("-")
+        return `${dia}/${mes}/${ano}`
+      }
+      return new Date(dataString).toLocaleDateString("pt-BR")
+    }
+
+    const linhas = debitosFiltrados
+      .map(
+        (debito) => `<tr>
+          <td>${escaparHtml(debito.cooperado_nome)}</td>
+          <td>${escaparHtml(debito.empresa_nome)}</td>
+          <td>${formatarDataXls(debito.data)}</td>
+          <td>${escaparHtml(debito.descricao)}</td>
+          <td>${debito.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td>${debito.status === "pago" ? "Pago" : "Pendente"}</td>
+          <td>${formatarDataXls(debito.data_baixa)}</td>
+        </tr>`,
+      )
+      .join("")
+
+    const html = `<table>
+      <thead><tr>
+        <th>Cooperado</th><th>Empresa</th><th>Data</th><th>Descrição</th>
+        <th>Valor (R$)</th><th>Status</th><th>Data de Baixa</th>
+      </tr></thead>
+      <tbody>${linhas}
+        <tr><td colspan="4"><strong>TOTAL</strong></td>
+          <td><strong>${valorFiltradoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>`
+
+    const blob = new Blob([`\ufeff<html><head><meta charset="UTF-8"><style>
+      table { border-collapse: collapse; font-family: Arial, sans-serif; }
+      th, td { border: 1px solid #999; padding: 6px; }
+      th { background: #e5e7eb; font-weight: bold; }
+      td:nth-child(5), th:nth-child(5) { text-align: right; }
+    </style></head><body>${html}</body></html>`], {
+      type: "application/vnd.ms-excel;charset=utf-8",
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `relatorio-debitos-${new Date().toISOString().slice(0, 10)}.xls`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+
+    toast({ title: "Exportação concluída", description: "A planilha XLS foi baixada." })
+  }
+
   const handleImprimirRelatorio = () => {
     const formatarData = (dataString: string | null) => {
       if (!dataString) return "-"
@@ -934,6 +1009,10 @@ export default function DebitosPage() {
           <div className="flex items-center justify-between max-w-5xl mx-auto">
             <h1 className="text-xl font-bold">Relatório de Débitos</h1>
             <div className="flex gap-2">
+              <Button onClick={handleExportarXls} variant="default">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Exportar XLS
+              </Button>
               <Button onClick={handleImprimirRelatorio} variant="default">
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
