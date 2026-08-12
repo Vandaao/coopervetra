@@ -26,8 +26,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Printer, Users } from "lucide-react"
+import { Plus, Edit, Trash2, Printer, Users, Fuel, ChevronDown, ChevronUp } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+
+interface AbastecimentoCredito {
+  id: number
+  data_credito: string
+  valor: number
+  saldo_disponivel: number
+  observacao: string | null
+  created_at: string
+}
+
+interface AbastecimentoDocumento {
+  id: number
+  numero_documento: string
+  data_documento: string
+  valor: number
+  valor_abatido: number
+  valor_pendente: number
+  status: string
+  descricao: string | null
+  created_at: string
+}
+
+interface AbastecimentoAlocacao {
+  id: number
+  valor: number
+  credito_id: number
+  credito_data: string
+  credito_observacao: string | null
+}
 
 interface Cliente {
   id: number
@@ -50,6 +80,26 @@ interface Faturamento {
 }
 
 export default function FaturamentoPage() {
+  const { toast } = useToast()
+  const [creditos, setCreditos] = useState<AbastecimentoCredito[]>([])
+  const [documentos, setDocumentos] = useState<AbastecimentoDocumento[]>([])
+  const [loadingAbastecimento, setLoadingAbastecimento] = useState(true)
+  const [isCreditoDialogOpen, setIsCreditoDialogOpen] = useState(false)
+  const [isDocumentoDialogOpen, setIsDocumentoDialogOpen] = useState(false)
+  const [documentoExpandidoId, setDocumentoExpandidoId] = useState<number | null>(null)
+  const [alocacoesPorDocumento, setAlocacoesPorDocumento] = useState<Record<number, AbastecimentoAlocacao[]>>({})
+  const [creditoFormData, setCreditoFormData] = useState({
+    data_credito: "",
+    valor: "",
+    observacao: "",
+  })
+  const [documentoFormData, setDocumentoFormData] = useState({
+    numero_documento: "",
+    data_documento: "",
+    valor: "",
+    descricao: "",
+  })
+
   const [faturamentos, setFaturamentos] = useState<Faturamento[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +130,122 @@ export default function FaturamentoPage() {
     carregarClientes()
     carregarFaturamentos()
   }, [filtroStatus, filtroDataInicio, filtroDataFim])
+
+  useEffect(() => {
+    carregarAbastecimento()
+  }, [])
+
+  const carregarAbastecimento = async () => {
+    try {
+      setLoadingAbastecimento(true)
+      const [resCreditos, resDocumentos] = await Promise.all([
+        fetch("/api/abastecimento/creditos"),
+        fetch("/api/abastecimento/documentos"),
+      ])
+      if (!resCreditos.ok || !resDocumentos.ok) throw new Error("Erro ao carregar dados de abastecimento")
+      const [dataCreditos, dataDocumentos] = await Promise.all([resCreditos.json(), resDocumentos.json()])
+      setCreditos(Array.isArray(dataCreditos) ? dataCreditos : [])
+      setDocumentos(Array.isArray(dataDocumentos) ? dataDocumentos : [])
+    } catch (error) {
+      console.error("Erro ao carregar abastecimento:", error)
+      setCreditos([])
+      setDocumentos([])
+    } finally {
+      setLoadingAbastecimento(false)
+    }
+  }
+
+  const handleCreditoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch("/api/abastecimento/creditos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(creditoFormData),
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Erro ao lançar crédito")
+      }
+      setIsCreditoDialogOpen(false)
+      setCreditoFormData({ data_credito: "", valor: "", observacao: "" })
+      await carregarAbastecimento()
+      toast({ title: "Crédito lançado", description: "O crédito foi lançado e as pendências foram atualizadas." })
+    } catch (error) {
+      console.error("Erro ao lançar crédito:", error)
+      toast({
+        title: "Erro",
+        description: (error as Error).message || "Erro ao lançar crédito",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDocumentoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch("/api/abastecimento/documentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(documentoFormData),
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Erro ao lançar documento")
+      }
+      const documentoCriado = await response.json()
+      setIsDocumentoDialogOpen(false)
+      setDocumentoFormData({ numero_documento: "", data_documento: "", valor: "", descricao: "" })
+      await carregarAbastecimento()
+      toast({
+        title: "Documento lançado",
+        description:
+          documentoCriado.status === "pago"
+            ? "Documento lançado e totalmente abatido do crédito disponível."
+            : `Documento lançado. Restam R$ ${Number(documentoCriado.valor_pendente).toFixed(2)} pendentes por falta de saldo.`,
+      })
+    } catch (error) {
+      console.error("Erro ao lançar documento:", error)
+      toast({
+        title: "Erro",
+        description: (error as Error).message || "Erro ao lançar documento",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleToggleAlocacoes = async (documentoId: number) => {
+    if (documentoExpandidoId === documentoId) {
+      setDocumentoExpandidoId(null)
+      return
+    }
+    setDocumentoExpandidoId(documentoId)
+    if (!alocacoesPorDocumento[documentoId]) {
+      try {
+        const response = await fetch(`/api/abastecimento/documentos/${documentoId}/alocacoes`)
+        if (!response.ok) throw new Error("Erro ao buscar alocações")
+        const data = await response.json()
+        setAlocacoesPorDocumento((prev) => ({ ...prev, [documentoId]: Array.isArray(data) ? data : [] }))
+      } catch (error) {
+        console.error("Erro ao buscar alocações:", error)
+        setAlocacoesPorDocumento((prev) => ({ ...prev, [documentoId]: [] }))
+      }
+    }
+  }
+
+  const formatarDataAbastecimento = (dataString: string | null) => {
+    if (!dataString) return "-"
+    if (dataString.includes("-") && dataString.length === 10) {
+      const [ano, mes, dia] = dataString.split("-")
+      return `${dia}/${mes}/${ano}`
+    }
+    return new Date(dataString).toLocaleDateString("pt-BR")
+  }
+
+  const saldoDisponivelTotal = creditos.reduce((sum, c) => sum + c.saldo_disponivel, 0)
+  const totalCreditado = creditos.reduce((sum, c) => sum + c.valor, 0)
+  const totalPendenteAbastecimento = documentos.reduce((sum, d) => sum + d.valor_pendente, 0)
+  const totalPagoAbastecimento = documentos.reduce((sum, d) => sum + d.valor_abatido, 0)
 
   const carregarClientes = async () => {
     try {
@@ -561,6 +727,306 @@ export default function FaturamentoPage() {
               </DialogContent>
             </Dialog>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg border p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Fuel className="w-5 h-5 text-gray-700" />
+              <div>
+                <h2 className="text-xl font-bold">Controle de Abastecimento — Posto Modelo</h2>
+                <p className="text-sm text-gray-600">Créditos/adiantamentos e documentos abatidos automaticamente</p>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Dialog open={isCreditoDialogOpen} onOpenChange={setIsCreditoDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreditoFormData({ data_credito: "", valor: "", observacao: "" })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Crédito
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Lançar Novo Crédito</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreditoSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="credito-data">Data do Crédito</Label>
+                      <Input
+                        id="credito-data"
+                        type="date"
+                        value={creditoFormData.data_credito}
+                        onChange={(e) =>
+                          setCreditoFormData({ ...creditoFormData, data_credito: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credito-valor">Valor (R$)</Label>
+                      <Input
+                        id="credito-valor"
+                        type="number"
+                        step="0.01"
+                        value={creditoFormData.valor}
+                        onChange={(e) => setCreditoFormData({ ...creditoFormData, valor: e.target.value })}
+                        placeholder="50000.00"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credito-observacao">Observação</Label>
+                      <Textarea
+                        id="credito-observacao"
+                        value={creditoFormData.observacao}
+                        onChange={(e) =>
+                          setCreditoFormData({ ...creditoFormData, observacao: e.target.value })
+                        }
+                        placeholder="Ex: Recarga de adiantamento"
+                        className="h-20"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Ao salvar, documentos pendentes mais antigos serão abatidos automaticamente deste crédito.
+                    </p>
+                    <Button type="submit" className="w-full">
+                      Lançar Crédito
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={isDocumentoDialogOpen} onOpenChange={setIsDocumentoDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() =>
+                      setDocumentoFormData({ numero_documento: "", data_documento: "", valor: "", descricao: "" })
+                    }
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Lançar Documento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Lançar Documento de Abastecimento</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleDocumentoSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="documento-numero">Número do Documento</Label>
+                      <Input
+                        id="documento-numero"
+                        value={documentoFormData.numero_documento}
+                        onChange={(e) =>
+                          setDocumentoFormData({ ...documentoFormData, numero_documento: e.target.value })
+                        }
+                        placeholder="NF 12345"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="documento-data">Data do Documento</Label>
+                      <Input
+                        id="documento-data"
+                        type="date"
+                        value={documentoFormData.data_documento}
+                        onChange={(e) =>
+                          setDocumentoFormData({ ...documentoFormData, data_documento: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="documento-valor">Valor (R$)</Label>
+                      <Input
+                        id="documento-valor"
+                        type="number"
+                        step="0.01"
+                        value={documentoFormData.valor}
+                        onChange={(e) => setDocumentoFormData({ ...documentoFormData, valor: e.target.value })}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="documento-descricao">Descrição</Label>
+                      <Textarea
+                        id="documento-descricao"
+                        value={documentoFormData.descricao}
+                        onChange={(e) =>
+                          setDocumentoFormData({ ...documentoFormData, descricao: e.target.value })
+                        }
+                        placeholder="Detalhes do abastecimento..."
+                        className="h-20"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Se o crédito disponível não cobrir o valor, o documento será lançado com status "Pendente" pelo
+                      restante.
+                    </p>
+                    <Button type="submit" className="w-full">
+                      Lançar Documento
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <p className="text-sm text-gray-600">Saldo Disponível</p>
+              <p className="text-2xl font-bold text-blue-600 break-words">R$ {saldoDisponivelTotal.toFixed(2)}</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <p className="text-sm text-gray-600">Total Creditado</p>
+              <p className="text-2xl font-bold break-words">R$ {totalCreditado.toFixed(2)}</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <p className="text-sm text-gray-600">Pendente</p>
+              <p className="text-2xl font-bold text-amber-600 break-words">
+                R$ {totalPendenteAbastecimento.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <p className="text-sm text-gray-600">Abatido</p>
+              <p className="text-2xl font-bold text-green-600 break-words">
+                R$ {totalPagoAbastecimento.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {loadingAbastecimento ? (
+            <p className="text-center text-gray-500 py-4">Carregando...</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold mb-2">Créditos Lançados</h3>
+                {creditos.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-2">Nenhum crédito lançado ainda</p>
+                ) : (
+                  <div className="overflow-x-auto w-full border rounded-lg">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead className="text-right">Saldo</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {creditos.map((credito) => (
+                          <TableRow key={credito.id}>
+                            <TableCell>{formatarDataAbastecimento(credito.data_credito)}</TableCell>
+                            <TableCell className="text-right">R$ {credito.valor.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">R$ {credito.saldo_disponivel.toFixed(2)}</TableCell>
+                            <TableCell className="text-center">
+                              <span
+                                className={`px-2 py-1 rounded text-xs ${
+                                  credito.saldo_disponivel > 0
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {credito.saldo_disponivel > 0 ? "Ativo" : "Esgotado"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Documentos de Abastecimento</h3>
+                {documentos.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-2">Nenhum documento lançado ainda</p>
+                ) : (
+                  <div className="overflow-x-auto w-full border rounded-lg">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Número</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead className="text-right">Pendente</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                          <TableHead className="text-center">Alocações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {documentos.map((documento) => (
+                          <>
+                            <TableRow key={documento.id}>
+                              <TableCell>{documento.numero_documento}</TableCell>
+                              <TableCell>{formatarDataAbastecimento(documento.data_documento)}</TableCell>
+                              <TableCell className="text-right">R$ {documento.valor.toFixed(2)}</TableCell>
+                              <TableCell className="text-right">R$ {documento.valor_pendente.toFixed(2)}</TableCell>
+                              <TableCell className="text-center">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs ${
+                                    documento.status === "pago"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {documento.status === "pago" ? "Pago" : "Pendente"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleToggleAlocacoes(documento.id)}
+                                >
+                                  {documentoExpandidoId === documento.id ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                            {documentoExpandidoId === documento.id && (
+                              <TableRow key={`${documento.id}-alocacoes`}>
+                                <TableCell colSpan={6} className="bg-gray-50">
+                                  {!alocacoesPorDocumento[documento.id] ? (
+                                    <p className="text-xs text-gray-500 py-1">Carregando alocações...</p>
+                                  ) : alocacoesPorDocumento[documento.id].length === 0 ? (
+                                    <p className="text-xs text-gray-500 py-1">
+                                      Nenhuma alocação de crédito ainda para este documento.
+                                    </p>
+                                  ) : (
+                                    <div className="space-y-1 py-1">
+                                      <p className="text-xs font-medium text-gray-600">
+                                        Créditos usados para abater este documento:
+                                      </p>
+                                      {alocacoesPorDocumento[documento.id].map((alocacao) => (
+                                        <p key={alocacao.id} className="text-xs text-gray-700">
+                                          Crédito de {formatarDataAbastecimento(alocacao.credito_data)}: R${" "}
+                                          {alocacao.valor.toFixed(2)}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
