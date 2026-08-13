@@ -75,6 +75,7 @@ interface Faturamento {
   data_vencimento: string
   valor: number
   observacao: string | null
+  data_pagamento: string | null
   status: string
   created_at: string
 }
@@ -107,6 +108,8 @@ export default function FaturamentoPage() {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingClientId, setEditingClientId] = useState<number | null>(null)
+  const [pagamentoId, setPagamentoId] = useState<number | null>(null)
+  const [dataPagamento, setDataPagamento] = useState(() => new Date().toISOString().slice(0, 10))
   const [filtroStatus, setFiltroStatus] = useState("todos")
   const [filtroDataInicio, setFiltroDataInicio] = useState("")
   const [filtroDataFim, setFiltroDataFim] = useState("")
@@ -119,6 +122,7 @@ export default function FaturamentoPage() {
     valor: "",
     observacao: "",
     status: "pendente",
+    data_pagamento: "",
   })
 
   const [clientFormData, setClientFormData] = useState({
@@ -345,6 +349,7 @@ export default function FaturamentoPage() {
         valor: "",
         observacao: "",
         status: "pendente",
+        data_pagamento: "",
       })
       carregarFaturamentos()
     } catch (error) {
@@ -392,6 +397,30 @@ export default function FaturamentoPage() {
     } catch (error) {
       console.error("Erro ao deletar:", error)
       alert("Erro ao deletar faturamento")
+    }
+  }
+
+  const handleMarcarComoPago = async (faturamento: Faturamento) => {
+    const data = dataPagamento || new Date().toISOString().slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      toast({ title: "Data inválida", description: "Informe uma data de pagamento válida.", variant: "destructive" })
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/faturamento/${faturamento.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "pago", data_pagamento: data }),
+      })
+      const resultado = await response.json()
+      if (!response.ok) throw new Error(resultado.error || "Erro ao marcar como pago")
+
+      setPagamentoId(null)
+      await carregarFaturamentos()
+      toast({ title: "Faturamento marcado como pago", description: `Pagamento registrado em ${data.split("-").reverse().join("/")}.` })
+    } catch (error) {
+      toast({ title: "Erro ao marcar como pago", description: (error as Error).message, variant: "destructive" })
     }
   }
 
@@ -445,8 +474,9 @@ export default function FaturamentoPage() {
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cliente</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Documento Ref.</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Emissão</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Vencimento</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Vencimento</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Pagamento</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
             </tr>
             ${faturamentos
@@ -456,8 +486,9 @@ export default function FaturamentoPage() {
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.cliente}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.documento_referencia || "-"}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_emissao)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${Number(fat.valor || 0).toFixed(2)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_pagamento)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${Number(fat.valor || 0).toFixed(2)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${fat.status === "pago" ? "color: green;" : fat.status === "pendente" ? "color: orange;" : "color: red;"}">${fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado"}</td>
               </tr>
             `,
@@ -647,6 +678,7 @@ export default function FaturamentoPage() {
                       valor: "",
                       observacao: "",
                       status: "pendente",
+                      data_pagamento: "",
                     })
                   }}
                 >
@@ -1138,6 +1170,7 @@ export default function FaturamentoPage() {
                     <TableHead>Documento</TableHead>
                     <TableHead>Data Emissão</TableHead>
                     <TableHead>Vencimento</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
@@ -1150,6 +1183,7 @@ export default function FaturamentoPage() {
                       <TableCell>{fat.documento_referencia || "-"}</TableCell>
                       <TableCell>{new Date(fat.data_emissao).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>{new Date(fat.data_vencimento).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{fat.data_pagamento ? new Date(fat.data_pagamento).toLocaleDateString("pt-BR") : "-"}</TableCell>
                       <TableCell className="text-right">R$ {Number(fat.valor || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-center">
                         <span
@@ -1169,7 +1203,39 @@ export default function FaturamentoPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {fat.status === "pendente" && (
+                            <>
+                              {pagamentoId === fat.id ? (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    aria-label={`Data de pagamento de ${fat.cliente}`}
+                                    type="date"
+                                    value={dataPagamento}
+                                    onChange={(e) => setDataPagamento(e.target.value)}
+                                    className="w-36"
+                                  />
+                                  <Button size="sm" onClick={() => handleMarcarComoPago(fat)}>
+                                    Confirmar
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setPagamentoId(null)}>
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setDataPagamento(new Date().toISOString().slice(0, 10))
+                                    setPagamentoId(fat.id)
+                                  }}
+                                >
+                                  Marcar como pago
+                                </Button>
+                              )}
+                            </>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1183,6 +1249,7 @@ export default function FaturamentoPage() {
                                 valor: fat.valor.toString(),
                                 observacao: fat.observacao || "",
                                 status: fat.status,
+                                data_pagamento: fat.data_pagamento || "",
                               })
                               setIsDialogOpen(true)
                             }}

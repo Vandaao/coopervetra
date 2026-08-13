@@ -24,6 +24,7 @@ async function initializeTable() {
         data_vencimento DATE NOT NULL,
         valor DECIMAL(10,2) NOT NULL,
         observacao TEXT,
+        data_pagamento DATE,
         status VARCHAR(20) NOT NULL DEFAULT 'pendente',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -55,6 +56,10 @@ async function initializeTable() {
     await sql`
       ALTER TABLE faturamento
       ADD COLUMN IF NOT EXISTS observacao TEXT
+    `
+    await sql`
+      ALTER TABLE faturamento
+      ADD COLUMN IF NOT EXISTS data_pagamento DATE
     `
 
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_emissao ON faturamento(data_emissao)`
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor, observacao)
       VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor}, ${observacao || null})
-      RETURNING id, cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, created_at
+      RETURNING id, cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, data_pagamento, created_at
     `
 
     // Buscar o cliente para retornar junto

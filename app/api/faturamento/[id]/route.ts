@@ -47,7 +47,11 @@ export async function PUT(
     await initializeTable()
     const { id } = params
     const body = await request.json()
-    const { cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao } = body
+    const { cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, data_pagamento } = body
+
+    if (status === "pago" && (!data_pagamento || !/^\d{4}-\d{2}-\d{2}$/.test(data_pagamento))) {
+      return NextResponse.json({ error: "Informe uma data de pagamento válida" }, { status: 400 })
+    }
 
     const result = await sql`
       UPDATE faturamento
@@ -59,6 +63,7 @@ export async function PUT(
         valor = COALESCE(${valor || null}, valor),
         status = COALESCE(${status || null}, status),
         observacao = COALESCE(${observacao || null}, observacao),
+        data_pagamento = COALESCE(${data_pagamento || null}::date, data_pagamento),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${Number(id)}
     `
