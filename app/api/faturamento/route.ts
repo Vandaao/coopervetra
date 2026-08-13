@@ -47,10 +47,14 @@ async function initializeTable() {
       console.warn("Não foi possível ajustar a coluna legada cliente:", e)
     }
 
-    // Garantir a coluna usada pelo formulário em instalações antigas.
+    // Garantir as colunas usadas pelo formulário em instalações antigas.
     await sql`
       ALTER TABLE faturamento
       ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL
+    `
+    await sql`
+      ALTER TABLE faturamento
+      ADD COLUMN IF NOT EXISTS observacao TEXT
     `
 
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_emissao ON faturamento(data_emissao)`
