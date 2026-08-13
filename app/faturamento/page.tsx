@@ -216,7 +216,7 @@ export default function FaturamentoPage() {
 
   const handleExcluirCredito = async (credito: AbastecimentoCredito) => {
     const confirmou = window.confirm(
-      `Excluir o crédito de R$ ${credito.valor.toFixed(2)}? Se ele já foi utilizado, todos os documentos e lançamentos vinculados também serão excluídos. Essa ação não pode ser desfeita.`,
+      `Excluir o crédito de R$ ${Number(credito.valor || 0).toFixed(2)}? Se ele já foi utilizado, todos os documentos e lançamentos vinculados também serão excluídos. Essa ação não pode ser desfeita.`,
     )
     if (!confirmou) return
 
@@ -270,10 +270,10 @@ export default function FaturamentoPage() {
     return new Date(dataString).toLocaleDateString("pt-BR")
   }
 
-  const saldoDisponivelTotal = creditos.reduce((sum, c) => sum + c.saldo_disponivel, 0)
-  const totalCreditado = creditos.reduce((sum, c) => sum + c.valor, 0)
-  const totalPendenteAbastecimento = documentos.reduce((sum, d) => sum + d.valor_pendente, 0)
-  const totalPagoAbastecimento = documentos.reduce((sum, d) => sum + d.valor_abatido, 0)
+  const saldoDisponivelTotal = creditos.reduce((sum, c) => sum + Number(c.saldo_disponivel || 0), 0)
+  const totalCreditado = creditos.reduce((sum, c) => sum + Number(c.valor || 0), 0)
+  const totalPendenteAbastecimento = documentos.reduce((sum, d) => sum + Number(d.valor_pendente || 0), 0)
+  const totalPagoAbastecimento = documentos.reduce((sum, d) => sum + Number(d.valor_abatido || 0), 0)
 
   const carregarClientes = async () => {
     try {
@@ -457,7 +457,7 @@ export default function FaturamentoPage() {
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.documento_referencia || "-"}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_emissao)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${fat.valor.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${Number(fat.valor || 0).toFixed(2)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${fat.status === "pago" ? "color: green;" : fat.status === "pendente" ? "color: orange;" : "color: red;"}">${fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado"}</td>
               </tr>
             `,
@@ -470,20 +470,20 @@ export default function FaturamentoPage() {
           <div style="display: flex; justify-content: flex-end; gap: 40px;">
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Total Faturado:</p>
-              <p style="font-size: 14px; font-weight: bold;">R$ ${faturamentos.reduce((sum, f) => sum + f.valor, 0).toFixed(2)}</p>
+              <p style="font-size: 14px; font-weight: bold;">R$ ${faturamentos.reduce((sum, f) => sum + Number(f.valor || 0), 0).toFixed(2)}</p>
             </div>
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Pendente:</p>
               <p style="font-size: 14px; font-weight: bold; color: #f59e0b;">R$ ${faturamentos
                 .filter((f) => f.status === "pendente")
-                .reduce((sum, f) => sum + f.valor, 0)
+                .reduce((sum, f) => sum + Number(f.valor || 0), 0)
                 .toFixed(2)}</p>
             </div>
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Recebido:</p>
               <p style="font-size: 14px; font-weight: bold; color: #10b981;">R$ ${faturamentos
                 .filter((f) => f.status === "pago")
-                .reduce((sum, f) => sum + f.valor, 0)
+                .reduce((sum, f) => sum + Number(f.valor || 0), 0)
                 .toFixed(2)}</p>
             </div>
           </div>
@@ -534,13 +534,13 @@ export default function FaturamentoPage() {
     setTimeout(acionarImpressao, 300)
   }
 
-  const totalFaturado = faturamentos.reduce((sum, f) => sum + f.valor, 0)
+  const totalFaturado = faturamentos.reduce((sum, f) => sum + Number(f.valor || 0), 0)
   const totalPendente = faturamentos
     .filter((f) => f.status === "pendente")
-    .reduce((sum, f) => sum + f.valor, 0)
+    .reduce((sum, f) => sum + Number(f.valor || 0), 0)
   const totalPago = faturamentos
     .filter((f) => f.status === "pago")
-    .reduce((sum, f) => sum + f.valor, 0)
+    .reduce((sum, f) => sum + Number(f.valor || 0), 0)
 
   return (
       <div className="space-y-6">
@@ -952,8 +952,8 @@ export default function FaturamentoPage() {
                         {creditos.map((credito) => (
                           <TableRow key={credito.id}>
                             <TableCell>{formatarDataAbastecimento(credito.data_credito)}</TableCell>
-                            <TableCell className="text-right">R$ {credito.valor.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">R$ {credito.saldo_disponivel.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">R$ {Number(credito.valor || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-right">R$ {Number(credito.saldo_disponivel || 0).toFixed(2)}</TableCell>
                             <TableCell className="text-center">
                               <span
                                 className={`px-2 py-1 rounded text-xs ${
@@ -1009,8 +1009,8 @@ export default function FaturamentoPage() {
                             <TableRow key={documento.id}>
                               <TableCell>{documento.numero_documento}</TableCell>
                               <TableCell>{formatarDataAbastecimento(documento.data_documento)}</TableCell>
-                              <TableCell className="text-right">R$ {documento.valor.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">R$ {documento.valor_pendente.toFixed(2)}</TableCell>
+                              <TableCell className="text-right">R$ {Number(documento.valor || 0).toFixed(2)}</TableCell>
+                              <TableCell className="text-right">R$ {Number(documento.valor_pendente || 0).toFixed(2)}</TableCell>
                               <TableCell className="text-center">
                                 <span
                                   className={`px-2 py-1 rounded text-xs ${
@@ -1150,7 +1150,7 @@ export default function FaturamentoPage() {
                       <TableCell>{fat.documento_referencia || "-"}</TableCell>
                       <TableCell>{new Date(fat.data_emissao).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>{new Date(fat.data_vencimento).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="text-right">R$ {fat.valor.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">R$ {Number(fat.valor || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-center">
                         <span
                           className={`px-2 py-1 rounded text-sm ${
