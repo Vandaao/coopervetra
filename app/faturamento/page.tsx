@@ -214,6 +214,34 @@ export default function FaturamentoPage() {
     }
   }
 
+  const handleExcluirCredito = async (credito: AbastecimentoCredito) => {
+    const confirmou = window.confirm(
+      `Excluir o crédito de R$ ${credito.valor.toFixed(2)}? Se ele já foi utilizado, todos os documentos e lançamentos vinculados também serão excluídos. Essa ação não pode ser desfeita.`,
+    )
+    if (!confirmou) return
+
+    try {
+      const response = await fetch(`/api/abastecimento/creditos/${credito.id}`, { method: "DELETE" })
+      const resultado = await response.json()
+      if (!response.ok) throw new Error(resultado.error || "Erro ao excluir crédito")
+
+      setDocumentoExpandidoId(null)
+      setAlocacoesPorDocumento({})
+      await carregarAbastecimento()
+      toast({
+        title: "Crédito excluído",
+        description: `${resultado.documentos_excluidos || 0} documento(s) relacionado(s) também foram excluídos.`,
+      })
+    } catch (error) {
+      console.error("Erro ao excluir crédito:", error)
+      toast({
+        title: "Erro ao excluir crédito",
+        description: (error as Error).message || "Não foi possível excluir o crédito.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleToggleAlocacoes = async (documentoId: number) => {
     if (documentoExpandidoId === documentoId) {
       setDocumentoExpandidoId(null)
@@ -916,6 +944,7 @@ export default function FaturamentoPage() {
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead className="text-right">Saldo</TableHead>
                           <TableHead className="text-center">Status</TableHead>
+                          <TableHead className="text-center">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -934,6 +963,19 @@ export default function FaturamentoPage() {
                               >
                                 {credito.saldo_disponivel > 0 ? "Ativo" : "Esgotado"}
                               </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Excluir crédito e lançamentos vinculados"
+                                onClick={() => handleExcluirCredito(credito)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="sr-only">Excluir crédito e lançamentos vinculados</span>
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
