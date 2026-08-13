@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS faturamento (
     data_emissao DATE NOT NULL,
     data_vencimento DATE NOT NULL,
     valor DECIMAL(10,2) NOT NULL,
+    observacao TEXT,
+    data_pagamento DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'pendente', -- pendente, pago, cancelado
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

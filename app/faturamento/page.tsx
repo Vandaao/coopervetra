@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Printer, Users, Fuel, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Edit, Trash2, Printer, Users, Fuel, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 
@@ -75,6 +75,7 @@ interface Faturamento {
   data_vencimento: string
   valor: number
   observacao: string | null
+  data_pagamento: string | null
   status: string
   created_at: string
 }
@@ -107,6 +108,8 @@ export default function FaturamentoPage() {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingClientId, setEditingClientId] = useState<number | null>(null)
+  const [pagamentoId, setPagamentoId] = useState<number | null>(null)
+  const [dataPagamento, setDataPagamento] = useState(() => new Date().toISOString().slice(0, 10))
   const [filtroStatus, setFiltroStatus] = useState("todos")
   const [filtroDataInicio, setFiltroDataInicio] = useState("")
   const [filtroDataFim, setFiltroDataFim] = useState("")
@@ -119,6 +122,7 @@ export default function FaturamentoPage() {
     valor: "",
     observacao: "",
     status: "pendente",
+    data_pagamento: "",
   })
 
   const [clientFormData, setClientFormData] = useState({
@@ -216,7 +220,7 @@ export default function FaturamentoPage() {
 
   const handleExcluirCredito = async (credito: AbastecimentoCredito) => {
     const confirmou = window.confirm(
-      `Excluir o crédito de R$ ${credito.valor.toFixed(2)}? Se ele já foi utilizado, todos os documentos e lançamentos vinculados também serão excluídos. Essa ação não pode ser desfeita.`,
+      `Excluir o crédito de R$ ${Number(credito.valor || 0).toFixed(2)}? Se ele já foi utilizado, todos os documentos e lançamentos vinculados também serão excluídos. Essa ação não pode ser desfeita.`,
     )
     if (!confirmou) return
 
@@ -270,10 +274,10 @@ export default function FaturamentoPage() {
     return new Date(dataString).toLocaleDateString("pt-BR")
   }
 
-  const saldoDisponivelTotal = creditos.reduce((sum, c) => sum + c.saldo_disponivel, 0)
-  const totalCreditado = creditos.reduce((sum, c) => sum + c.valor, 0)
-  const totalPendenteAbastecimento = documentos.reduce((sum, d) => sum + d.valor_pendente, 0)
-  const totalPagoAbastecimento = documentos.reduce((sum, d) => sum + d.valor_abatido, 0)
+  const saldoDisponivelTotal = creditos.reduce((sum, c) => sum + Number(c.saldo_disponivel || 0), 0)
+  const totalCreditado = creditos.reduce((sum, c) => sum + Number(c.valor || 0), 0)
+  const totalPendenteAbastecimento = documentos.reduce((sum, d) => sum + Number(d.valor_pendente || 0), 0)
+  const totalPagoAbastecimento = documentos.reduce((sum, d) => sum + Number(d.valor_abatido || 0), 0)
 
   const carregarClientes = async () => {
     try {
@@ -345,6 +349,7 @@ export default function FaturamentoPage() {
         valor: "",
         observacao: "",
         status: "pendente",
+        data_pagamento: "",
       })
       carregarFaturamentos()
     } catch (error) {
@@ -395,6 +400,30 @@ export default function FaturamentoPage() {
     }
   }
 
+  const handleMarcarComoPago = async (faturamento: Faturamento) => {
+    const data = dataPagamento || new Date().toISOString().slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      toast({ title: "Data inválida", description: "Informe uma data de pagamento válida.", variant: "destructive" })
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/faturamento/${faturamento.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "pago", data_pagamento: data }),
+      })
+      const resultado = await response.json()
+      if (!response.ok) throw new Error(resultado.error || "Erro ao marcar como pago")
+
+      setPagamentoId(null)
+      await carregarFaturamentos()
+      toast({ title: "Faturamento marcado como pago", description: `Pagamento registrado em ${data.split("-").reverse().join("/")}.` })
+    } catch (error) {
+      toast({ title: "Erro ao marcar como pago", description: (error as Error).message, variant: "destructive" })
+    }
+  }
+
   const handleDeleteClient = async (id: number) => {
     if (!confirm("Tem certeza que deseja deletar este cliente?")) return
 
@@ -411,16 +440,51 @@ export default function FaturamentoPage() {
     }
   }
 
-  const handleImprimirRelatorio = () => {
-    const formatarData = (dataString: string | null) => {
-      if (!dataString) return "-"
-      if (dataString.includes("-") && dataString.length === 10) {
-        const [ano, mes, dia] = dataString.split("-")
-        return `${dia}/${mes}/${ano}`
-      }
-      return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
-    }
+  const formatarDataRelatorio = (valor: string | null | undefined) => {
+    if (!valor) return "-"
+    const texto = String(valor)
+    const somenteData = texto.match(/^(\\d{4})-(\\d{2})-(\\d{2})/)
+    if (somenteData) return `${somenteData[3]}/${somenteData[2]}/${somenteData[1]}`
 
+    const data = new Date(texto)
+    return Number.isNaN(data.getTime()) ? "-" : data.toLocaleDateString("pt-BR")
+  }
+
+  const escaparHtml = (valor: unknown) => String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+
+  const handleExportarXLS = () => {
+    const cabecalho = ["Cliente", "Documento", "Data Emissão", "Data Vencimento", "Data Pagamento", "Valor", "Observação", "Status"]
+    const linhas = faturamentos.map((fat) => [
+      fat.cliente,
+      fat.documento_referencia || "",
+      formatarDataRelatorio(fat.data_emissao),
+      formatarDataRelatorio(fat.data_vencimento),
+      formatarDataRelatorio(fat.data_pagamento),
+      `R$ ${Number(fat.valor || 0).toFixed(2).replace(".", ",")}`,
+      fat.observacao || "",
+      fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado",
+    ])
+
+    const tabela = [cabecalho, ...linhas]
+      .map((linha, indice) => `<tr>${linha.map((celula) => `<${indice === 0 ? "th" : "td"}>${escaparHtml(celula)}</${indice === 0 ? "th" : "td"}>`).join("")}</tr>`)
+      .join("")
+    const conteudo = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table border="1">${tabela}</table></body></html>`
+    const blob = new Blob(["\\ufeff", conteudo], { type: "application/vnd.ms-excel;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `faturamentos-${new Date().toISOString().slice(0, 10)}.xls`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImprimirRelatorio = () => {
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -428,11 +492,11 @@ export default function FaturamentoPage() {
           <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">Relatório de Faturamento</h2>
           <p style="font-size: 12px; color: #666; margin-bottom: 5px;">
             ${filtroDataInicio && filtroDataFim
-              ? `Período: ${formatarData(filtroDataInicio)} a ${formatarData(filtroDataFim)}`
+              ? `Período: ${formatarDataRelatorio(filtroDataInicio)} a ${formatarDataRelatorio(filtroDataFim)}`
               : filtroDataInicio
-                ? `A partir de: ${formatarData(filtroDataInicio)}`
+                ? `A partir de: ${formatarDataRelatorio(filtroDataInicio)}`
                 : filtroDataFim
-                  ? `Até: ${formatarData(filtroDataFim)}`
+                  ? `Até: ${formatarDataRelatorio(filtroDataFim)}`
                   : "Todos os períodos"}
           </p>
           ${filtroStatus !== "todos" ? `<p style="font-size: 12px; color: #666;">Status: ${filtroStatus === "pago" ? "Pagos" : filtroStatus === "pendente" ? "Pendentes" : "Cancelados"}</p>` : ""}
@@ -445,8 +509,9 @@ export default function FaturamentoPage() {
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Cliente</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Documento Ref.</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Emissão</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Vencimento</th>
-              <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Vencimento</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: left; font-weight: bold;">Data Pagamento</th>
+  <th style="border: 1px solid #ccc; padding: 10px; text-align: right; font-weight: bold;">Valor</th>
               <th style="border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: bold;">Status</th>
             </tr>
             ${faturamentos
@@ -455,9 +520,10 @@ export default function FaturamentoPage() {
               <tr style="border-bottom: 1px solid #ccc;">
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.cliente}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.documento_referencia || "-"}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_emissao)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${fat.valor.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_emissao)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_vencimento)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_pagamento)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${Number(fat.valor || 0).toFixed(2)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${fat.status === "pago" ? "color: green;" : fat.status === "pendente" ? "color: orange;" : "color: red;"}">${fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado"}</td>
               </tr>
             `,
@@ -470,20 +536,20 @@ export default function FaturamentoPage() {
           <div style="display: flex; justify-content: flex-end; gap: 40px;">
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Total Faturado:</p>
-              <p style="font-size: 14px; font-weight: bold;">R$ ${faturamentos.reduce((sum, f) => sum + f.valor, 0).toFixed(2)}</p>
+              <p style="font-size: 14px; font-weight: bold;">R$ ${faturamentos.reduce((sum, f) => sum + Number(f.valor || 0), 0).toFixed(2)}</p>
             </div>
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Pendente:</p>
               <p style="font-size: 14px; font-weight: bold; color: #f59e0b;">R$ ${faturamentos
                 .filter((f) => f.status === "pendente")
-                .reduce((sum, f) => sum + f.valor, 0)
+                .reduce((sum, f) => sum + Number(f.valor || 0), 0)
                 .toFixed(2)}</p>
             </div>
             <div>
               <p style="font-size: 12px; margin-bottom: 5px;">Recebido:</p>
               <p style="font-size: 14px; font-weight: bold; color: #10b981;">R$ ${faturamentos
                 .filter((f) => f.status === "pago")
-                .reduce((sum, f) => sum + f.valor, 0)
+                .reduce((sum, f) => sum + Number(f.valor || 0), 0)
                 .toFixed(2)}</p>
             </div>
           </div>
@@ -534,13 +600,13 @@ export default function FaturamentoPage() {
     setTimeout(acionarImpressao, 300)
   }
 
-  const totalFaturado = faturamentos.reduce((sum, f) => sum + f.valor, 0)
+  const totalFaturado = faturamentos.reduce((sum, f) => sum + Number(f.valor || 0), 0)
   const totalPendente = faturamentos
     .filter((f) => f.status === "pendente")
-    .reduce((sum, f) => sum + f.valor, 0)
+    .reduce((sum, f) => sum + Number(f.valor || 0), 0)
   const totalPago = faturamentos
     .filter((f) => f.status === "pago")
-    .reduce((sum, f) => sum + f.valor, 0)
+    .reduce((sum, f) => sum + Number(f.valor || 0), 0)
 
   return (
       <div className="space-y-6">
@@ -549,11 +615,15 @@ export default function FaturamentoPage() {
             <h1 className="text-3xl font-bold">Faturamento</h1>
             <p className="text-gray-600 mt-1">Gerenciar boletos e lançamentos</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={handleImprimirRelatorio}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir Relatório
-            </Button>
+  <div className="flex gap-2 flex-wrap">
+  <Button variant="outline" onClick={handleExportarXLS}>
+  <FileSpreadsheet className="w-4 h-4 mr-2" />
+  Exportar XLS
+  </Button>
+  <Button variant="outline" onClick={handleImprimirRelatorio}>
+  <Printer className="w-4 h-4 mr-2" />
+  Imprimir Relatório
+  </Button>
             <Dialog open={isClientDialogOpen} onOpenChange={setIsClientDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -647,6 +717,7 @@ export default function FaturamentoPage() {
                       valor: "",
                       observacao: "",
                       status: "pendente",
+                      data_pagamento: "",
                     })
                   }}
                 >
@@ -952,8 +1023,8 @@ export default function FaturamentoPage() {
                         {creditos.map((credito) => (
                           <TableRow key={credito.id}>
                             <TableCell>{formatarDataAbastecimento(credito.data_credito)}</TableCell>
-                            <TableCell className="text-right">R$ {credito.valor.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">R$ {credito.saldo_disponivel.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">R$ {Number(credito.valor || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-right">R$ {Number(credito.saldo_disponivel || 0).toFixed(2)}</TableCell>
                             <TableCell className="text-center">
                               <span
                                 className={`px-2 py-1 rounded text-xs ${
@@ -1009,8 +1080,8 @@ export default function FaturamentoPage() {
                             <TableRow key={documento.id}>
                               <TableCell>{documento.numero_documento}</TableCell>
                               <TableCell>{formatarDataAbastecimento(documento.data_documento)}</TableCell>
-                              <TableCell className="text-right">R$ {documento.valor.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">R$ {documento.valor_pendente.toFixed(2)}</TableCell>
+                              <TableCell className="text-right">R$ {Number(documento.valor || 0).toFixed(2)}</TableCell>
+                              <TableCell className="text-right">R$ {Number(documento.valor_pendente || 0).toFixed(2)}</TableCell>
                               <TableCell className="text-center">
                                 <span
                                   className={`px-2 py-1 rounded text-xs ${
@@ -1138,6 +1209,7 @@ export default function FaturamentoPage() {
                     <TableHead>Documento</TableHead>
                     <TableHead>Data Emissão</TableHead>
                     <TableHead>Vencimento</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
@@ -1150,7 +1222,8 @@ export default function FaturamentoPage() {
                       <TableCell>{fat.documento_referencia || "-"}</TableCell>
                       <TableCell>{new Date(fat.data_emissao).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>{new Date(fat.data_vencimento).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="text-right">R$ {fat.valor.toFixed(2)}</TableCell>
+                      <TableCell>{fat.data_pagamento ? new Date(fat.data_pagamento).toLocaleDateString("pt-BR") : "-"}</TableCell>
+                      <TableCell className="text-right">R$ {Number(fat.valor || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-center">
                         <span
                           className={`px-2 py-1 rounded text-sm ${
@@ -1169,7 +1242,39 @@ export default function FaturamentoPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {fat.status === "pendente" && (
+                            <>
+                              {pagamentoId === fat.id ? (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    aria-label={`Data de pagamento de ${fat.cliente}`}
+                                    type="date"
+                                    value={dataPagamento}
+                                    onChange={(e) => setDataPagamento(e.target.value)}
+                                    className="w-36"
+                                  />
+                                  <Button size="sm" onClick={() => handleMarcarComoPago(fat)}>
+                                    Confirmar
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setPagamentoId(null)}>
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setDataPagamento(new Date().toISOString().slice(0, 10))
+                                    setPagamentoId(fat.id)
+                                  }}
+                                >
+                                  Marcar como pago
+                                </Button>
+                              )}
+                            </>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1183,6 +1288,7 @@ export default function FaturamentoPage() {
                                 valor: fat.valor.toString(),
                                 observacao: fat.observacao || "",
                                 status: fat.status,
+                                data_pagamento: fat.data_pagamento || "",
                               })
                               setIsDialogOpen(true)
                             }}

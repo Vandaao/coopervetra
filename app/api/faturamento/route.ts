@@ -24,6 +24,7 @@ async function initializeTable() {
         data_vencimento DATE NOT NULL,
         valor DECIMAL(10,2) NOT NULL,
         observacao TEXT,
+        data_pagamento DATE,
         status VARCHAR(20) NOT NULL DEFAULT 'pendente',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -47,10 +48,18 @@ async function initializeTable() {
       console.warn("Não foi possível ajustar a coluna legada cliente:", e)
     }
 
-    // Garantir a coluna usada pelo formulário em instalações antigas.
+    // Garantir as colunas usadas pelo formulário em instalações antigas.
     await sql`
       ALTER TABLE faturamento
       ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL
+    `
+    await sql`
+      ALTER TABLE faturamento
+      ADD COLUMN IF NOT EXISTS observacao TEXT
+    `
+    await sql`
+      ALTER TABLE faturamento
+      ADD COLUMN IF NOT EXISTS data_pagamento DATE
     `
 
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_emissao ON faturamento(data_emissao)`
@@ -134,7 +143,7 @@ export async function GET(request: NextRequest) {
       `
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Erro ao buscar faturamento:", error)
     return NextResponse.json({ error: "Erro ao buscar faturamento" }, { status: 500 })
@@ -157,7 +166,7 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO faturamento (cliente_id, documento_referencia, data_emissao, data_vencimento, valor, observacao)
       VALUES (${Number(cliente_id)}, ${documento_referencia}, ${data_emissao}, ${data_vencimento}, ${valor}, ${observacao || null})
-      RETURNING id, cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, created_at
+      RETURNING id, cliente_id, documento_referencia, data_emissao, data_vencimento, valor, status, observacao, data_pagamento, created_at
     `
 
     // Buscar o cliente para retornar junto
