@@ -30,19 +30,28 @@ async function initializeTable() {
       )
     `
 
-    // Migrar dados da coluna cliente (string) para cliente_id se necessário
+    // Compatibilidade com a tabela legada, que usava cliente (texto) como NOT NULL.
+    // O formulário atual usa cliente_id; a coluna antiga precisa ser opcional para não bloquear novos lançamentos.
     try {
       const legacyColumnExists = await sql`
         SELECT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name = 'faturamento' AND column_name = 'cliente' AND data_type = 'character varying'
-        )
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'faturamento' AND column_name = 'cliente'
+        ) AS exists
       `
-      
-      // Coluna legada pode existir, não faz nada
+
+      if (legacyColumnExists.rows[0]?.exists) {
+        await sql`ALTER TABLE faturamento ALTER COLUMN cliente DROP NOT NULL`
+      }
     } catch (e) {
-      // Ignorar erros
+      console.warn("Não foi possível ajustar a coluna legada cliente:", e)
     }
+
+    // Garantir a coluna usada pelo formulário em instalações antigas.
+    await sql`
+      ALTER TABLE faturamento
+      ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL
+    `
 
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_emissao ON faturamento(data_emissao)`
     await sql`CREATE INDEX IF NOT EXISTS idx_faturamento_data_vencimento ON faturamento(data_vencimento)`
@@ -152,13 +161,13 @@ export async function POST(request: NextRequest) {
     `
 
     // Buscar o cliente para retornar junto
-    const faturaComCliente = result[0]
+    const faturaComCliente = result.rows[0]
     if (faturaComCliente && faturaComCliente.cliente_id) {
       const cliente = await sql`
         SELECT nome FROM clientes WHERE id = ${faturaComCliente.cliente_id}
       `
-      if (cliente.length > 0) {
-        faturaComCliente.cliente = cliente[0].nome
+      if (cliente.rows.length > 0) {
+        faturaComCliente.cliente = cliente.rows[0].nome
       }
     }
 

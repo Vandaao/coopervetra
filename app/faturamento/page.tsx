@@ -343,6 +343,7 @@ export default function FaturamentoPage() {
         data_emissao: "",
         data_vencimento: "",
         valor: "",
+        observacao: "",
         status: "pendente",
       })
       carregarFaturamentos()
