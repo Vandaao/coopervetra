@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       `
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Erro ao buscar faturamento:", error)
     return NextResponse.json({ error: "Erro ao buscar faturamento" }, { status: 500 })
