@@ -440,31 +440,40 @@ export default function FaturamentoPage() {
     }
   }
 
-  const handleExportarXLS = () => {
-    const escapar = (valor: unknown) => `"${String(valor ?? "").replace(/"/g, '""')}"`
-    const formatarData = (dataString: string | null) => {
-      if (!dataString) return ""
-      if (dataString.includes("-") && dataString.length === 10) {
-        const [ano, mes, dia] = dataString.split("-")
-        return `${dia}/${mes}/${ano}`
-      }
-      return new Date(dataString).toLocaleDateString("pt-BR")
-    }
+  const formatarDataRelatorio = (valor: string | null | undefined) => {
+    if (!valor) return "-"
+    const texto = String(valor)
+    const somenteData = texto.match(/^(\\d{4})-(\\d{2})-(\\d{2})/)
+    if (somenteData) return `${somenteData[3]}/${somenteData[2]}/${somenteData[1]}`
 
+    const data = new Date(texto)
+    return Number.isNaN(data.getTime()) ? "-" : data.toLocaleDateString("pt-BR")
+  }
+
+  const escaparHtml = (valor: unknown) => String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+
+  const handleExportarXLS = () => {
     const cabecalho = ["Cliente", "Documento", "Data Emissão", "Data Vencimento", "Data Pagamento", "Valor", "Observação", "Status"]
     const linhas = faturamentos.map((fat) => [
       fat.cliente,
       fat.documento_referencia || "",
-      formatarData(fat.data_emissao),
-      formatarData(fat.data_vencimento),
-      formatarData(fat.data_pagamento),
-      Number(fat.valor || 0).toFixed(2).replace(".", ","),
+      formatarDataRelatorio(fat.data_emissao),
+      formatarDataRelatorio(fat.data_vencimento),
+      formatarDataRelatorio(fat.data_pagamento),
+      `R$ ${Number(fat.valor || 0).toFixed(2).replace(".", ",")}`,
       fat.observacao || "",
       fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado",
     ])
 
-    const conteudo = "\\ufeff" + [cabecalho, ...linhas].map((linha) => linha.map(escapar).join("\\t")).join("\\n")
-    const blob = new Blob([conteudo], { type: "application/vnd.ms-excel;charset=utf-8" })
+    const tabela = [cabecalho, ...linhas]
+      .map((linha, indice) => `<tr>${linha.map((celula) => `<${indice === 0 ? "th" : "td"}>${escaparHtml(celula)}</${indice === 0 ? "th" : "td"}>`).join("")}</tr>`)
+      .join("")
+    const conteudo = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table border="1">${tabela}</table></body></html>`
+    const blob = new Blob(["\\ufeff", conteudo], { type: "application/vnd.ms-excel;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
@@ -476,15 +485,6 @@ export default function FaturamentoPage() {
   }
 
   const handleImprimirRelatorio = () => {
-    const formatarData = (dataString: string | null) => {
-      if (!dataString) return "-"
-      if (dataString.includes("-") && dataString.length === 10) {
-        const [ano, mes, dia] = dataString.split("-")
-        return `${dia}/${mes}/${ano}`
-      }
-      return new Date(dataString + "T00:00:00").toLocaleDateString("pt-BR")
-    }
-
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -492,11 +492,11 @@ export default function FaturamentoPage() {
           <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">Relatório de Faturamento</h2>
           <p style="font-size: 12px; color: #666; margin-bottom: 5px;">
             ${filtroDataInicio && filtroDataFim
-              ? `Período: ${formatarData(filtroDataInicio)} a ${formatarData(filtroDataFim)}`
+              ? `Período: ${formatarDataRelatorio(filtroDataInicio)} a ${formatarDataRelatorio(filtroDataFim)}`
               : filtroDataInicio
-                ? `A partir de: ${formatarData(filtroDataInicio)}`
+                ? `A partir de: ${formatarDataRelatorio(filtroDataInicio)}`
                 : filtroDataFim
-                  ? `Até: ${formatarData(filtroDataFim)}`
+                  ? `Até: ${formatarDataRelatorio(filtroDataFim)}`
                   : "Todos os períodos"}
           </p>
           ${filtroStatus !== "todos" ? `<p style="font-size: 12px; color: #666;">Status: ${filtroStatus === "pago" ? "Pagos" : filtroStatus === "pendente" ? "Pendentes" : "Cancelados"}</p>` : ""}
@@ -520,9 +520,9 @@ export default function FaturamentoPage() {
               <tr style="border-bottom: 1px solid #ccc;">
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.cliente}</td>
                 <td style="border: 1px solid #ccc; padding: 8px;">${fat.documento_referencia || "-"}</td>
-                <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_emissao)}</td>
-  <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_vencimento)}</td>
-  <td style="border: 1px solid #ccc; padding: 8px;">${formatarData(fat.data_pagamento)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_emissao)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_vencimento)}</td>
+  <td style="border: 1px solid #ccc; padding: 8px;">${formatarDataRelatorio(fat.data_pagamento)}</td>
   <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">R$ ${Number(fat.valor || 0).toFixed(2)}</td>
                 <td style="border: 1px solid #ccc; padding: 8px; text-align: center; ${fat.status === "pago" ? "color: green;" : fat.status === "pendente" ? "color: orange;" : "color: red;"}">${fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado"}</td>
               </tr>
