@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Plus, Edit, Trash2, Printer, Users, Fuel, ChevronDown, ChevronUp } from "lucide-react"
+import { Plus, Edit, Trash2, Printer, Users, Fuel, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 
@@ -440,6 +440,41 @@ export default function FaturamentoPage() {
     }
   }
 
+  const handleExportarXLS = () => {
+    const escapar = (valor: unknown) => `"${String(valor ?? "").replace(/"/g, '""')}"`
+    const formatarData = (dataString: string | null) => {
+      if (!dataString) return ""
+      if (dataString.includes("-") && dataString.length === 10) {
+        const [ano, mes, dia] = dataString.split("-")
+        return `${dia}/${mes}/${ano}`
+      }
+      return new Date(dataString).toLocaleDateString("pt-BR")
+    }
+
+    const cabecalho = ["Cliente", "Documento", "Data Emissão", "Data Vencimento", "Data Pagamento", "Valor", "Observação", "Status"]
+    const linhas = faturamentos.map((fat) => [
+      fat.cliente,
+      fat.documento_referencia || "",
+      formatarData(fat.data_emissao),
+      formatarData(fat.data_vencimento),
+      formatarData(fat.data_pagamento),
+      Number(fat.valor || 0).toFixed(2).replace(".", ","),
+      fat.observacao || "",
+      fat.status === "pago" ? "Pago" : fat.status === "pendente" ? "Pendente" : "Cancelado",
+    ])
+
+    const conteudo = "\\ufeff" + [cabecalho, ...linhas].map((linha) => linha.map(escapar).join("\\t")).join("\\n")
+    const blob = new Blob([conteudo], { type: "application/vnd.ms-excel;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `faturamentos-${new Date().toISOString().slice(0, 10)}.xls`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
   const handleImprimirRelatorio = () => {
     const formatarData = (dataString: string | null) => {
       if (!dataString) return "-"
@@ -580,11 +615,15 @@ export default function FaturamentoPage() {
             <h1 className="text-3xl font-bold">Faturamento</h1>
             <p className="text-gray-600 mt-1">Gerenciar boletos e lançamentos</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={handleImprimirRelatorio}>
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir Relatório
-            </Button>
+  <div className="flex gap-2 flex-wrap">
+  <Button variant="outline" onClick={handleExportarXLS}>
+  <FileSpreadsheet className="w-4 h-4 mr-2" />
+  Exportar XLS
+  </Button>
+  <Button variant="outline" onClick={handleImprimirRelatorio}>
+  <Printer className="w-4 h-4 mr-2" />
+  Imprimir Relatório
+  </Button>
             <Dialog open={isClientDialogOpen} onOpenChange={setIsClientDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
