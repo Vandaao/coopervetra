@@ -46,10 +46,10 @@ export async function GET(request: NextRequest) {
 
     // Buscar débitos no período para cada cooperado DA MESMA EMPRESA
     const cooperadosIds = cooperadosPagamento.map((c) => c.cooperado_id)
-    let debitos = []
+    let debitos: Array<{ cooperado_id: number; total_debitos: number }> = []
 
     if (cooperadosIds.length > 0) {
-      debitos = await sql`
+      const debitosResult = await sql`
         SELECT 
           cooperado_id,
           SUM(valor) as total_debitos
@@ -61,6 +61,10 @@ export async function GET(request: NextRequest) {
           AND (status IS NULL OR status != 'pago')
         GROUP BY cooperado_id
       `
+      debitos = debitosResult.map((debito: any) => ({
+        cooperado_id: Number(debito.cooperado_id),
+        total_debitos: Number(debito.total_debitos || 0),
+      }))
     }
 
     // Buscar TODAS as taxas ativas
@@ -73,8 +77,8 @@ export async function GET(request: NextRequest) {
       const taxasResult = await sql`
         SELECT nome, percentual FROM taxas_descontos WHERE ativo = true ORDER BY id ASC
       `
-      if (taxasResult.rows.length > 0) {
-        taxasList = taxasResult.rows.map((t: any) => ({
+      if (taxasResult.length > 0) {
+        taxasList = taxasResult.map((t: any) => ({
           nome: t.nome,
           percentual: Number(t.percentual),
         }))

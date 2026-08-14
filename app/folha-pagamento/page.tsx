@@ -29,6 +29,7 @@ interface FolhaPagamentoData {
     valor_bruto: number
     desconto_inss: number
     desconto_administrativo: number
+    descontos_taxas: Array<{ nome: string; valor: number }>
     total_debitos: number
     total_descontos: number
     valor_liquido: number
