@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
     await initializeTable()
 
     const result = await sql`
-      SELECT * FROM taxas_descontos 
-      WHERE ativo = true
+      SELECT * FROM taxas_descontos
       ORDER BY nome
     `
 
@@ -57,18 +56,21 @@ export async function POST(request: NextRequest) {
   try {
     await initializeTable()
     const body = await request.json()
-    const { nome, percentual, descricao } = body
+    const nomeNormalizado = typeof body.nome === "string" ? body.nome.trim() : ""
+    const percentual = Number(body.percentual)
+    const descricao = typeof body.descricao === "string" ? body.descricao.trim() : ""
 
-    if (!nome || percentual === undefined) {
-      return NextResponse.json({ error: "Nome e percentual são obrigatórios" }, { status: 400 })
+    if (!nomeNormalizado || !Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
+      return NextResponse.json({ error: "Informe um nome e um percentual entre 0 e 100" }, { status: 400 })
     }
 
     const result = await sql`
       INSERT INTO taxas_descontos (nome, percentual, descricao, ativo)
-      VALUES (${nome}, ${percentual}, ${descricao || null}, true)
-      ON CONFLICT (nome) DO UPDATE SET 
+      VALUES (${nomeNormalizado}, ${percentual}, ${descricao || null}, true)
+      ON CONFLICT (nome) DO UPDATE SET
         percentual = EXCLUDED.percentual,
         descricao = EXCLUDED.descricao,
+        ativo = true,
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `
