@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
     await initializeTable()
 
     const result = await sql`
-      SELECT * FROM taxas_descontos 
-      WHERE ativo = true
+      SELECT * FROM taxas_descontos
       ORDER BY nome
     `
 

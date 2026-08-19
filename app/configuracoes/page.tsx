@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2 } from "lucide-react"
+import { Plus, Edit, Trash2, Power } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Taxa {
@@ -78,6 +78,7 @@ export default function ConfiguracoesPage() {
           nome: formData.nome,
           percentual: parseFloat(formData.percentual),
           descricao: formData.descricao,
+          ativo: true,
         }),
       })
 
@@ -111,6 +112,26 @@ export default function ConfiguracoesPage() {
       descricao: taxa.descricao || "",
     })
     setIsDialogOpen(true)
+  }
+
+  const handleAlternarStatus = async (taxa: Taxa) => {
+    try {
+      const response = await fetch(`/api/taxas/${taxa.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo: !taxa.ativo }),
+      })
+      if (!response.ok) throw new Error("Erro ao alterar status da taxa")
+
+      await carregarTaxas()
+      toast({
+        title: "Status atualizado",
+        description: `Taxa ${taxa.ativo ? "inativada" : "ativada"} com sucesso.`,
+      })
+    } catch (error) {
+      console.error("Erro ao alterar status da taxa:", error)
+      toast({ title: "Erro", description: "Não foi possível alterar o status da taxa.", variant: "destructive" })
+    }
   }
 
   const handleDeletar = async (id: number) => {
@@ -216,6 +237,7 @@ export default function ConfiguracoesPage() {
                       <TableHead>Nome</TableHead>
                       <TableHead>Percentual</TableHead>
                       <TableHead>Descrição</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -225,7 +247,21 @@ export default function ConfiguracoesPage() {
                         <TableCell className="font-medium">{taxa.nome}</TableCell>
                         <TableCell>{Number(taxa.percentual).toFixed(2)}%</TableCell>
                         <TableCell>{taxa.descricao || "-"}</TableCell>
+                        <TableCell>
+                          <span className={taxa.ativo ? "text-green-600" : "text-muted-foreground"}>
+                            {taxa.ativo ? "Ativa" : "Inativa"}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAlternarStatus(taxa)}
+                            title={taxa.ativo ? "Inativar taxa" : "Ativar taxa"}
+                            className={taxa.ativo ? "text-amber-600 hover:text-amber-700" : "text-green-600 hover:text-green-700"}
+                          >
+                            <Power className="w-4 h-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
