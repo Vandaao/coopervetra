@@ -150,7 +150,7 @@ export default function FolhaPagamentoPage() {
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
             <td style="border: 1px solid black; padding: 8px; font-size: 11px;">${cooperado.cooperado_nome}</td>
             <td style="border: 1px solid black; padding: 8px; text-align: center; font-size: 11px;">${cooperado.conta_bancaria}</td>
-            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;${Number(cooperado.valor_liquido) < 0 ? " color: #dc2626;" : ""}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
           </tr>
         `,
       )
