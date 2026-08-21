@@ -392,7 +392,9 @@ export default function FolhaPagamentoPage() {
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
                           <TableCell className="text-center">{cooperado.conta_bancaria}</TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell
+                            className={`text-right font-bold ${Number(cooperado.valor_liquido) < 0 ? "text-red-600" : ""}`}
+                          >
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -454,7 +456,9 @@ export default function FolhaPagamentoPage() {
                         <tr key={cooperado.cooperado_id} className={index % 2 === 0 ? "bg-gray-50" : ""}>
                           <td className="border border-black p-2">{cooperado.cooperado_nome}</td>
                           <td className="border border-black p-2 text-center">{cooperado.conta_bancaria}</td>
-                          <td className="border border-black p-2 text-right font-bold">
+                          <td
+                            className={`border border-black p-2 text-right font-bold ${Number(cooperado.valor_liquido) < 0 ? "text-red-600" : ""}`}
+                          >
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </td>
                         </tr>
