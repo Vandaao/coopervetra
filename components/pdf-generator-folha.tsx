@@ -93,7 +93,7 @@ export function PDFGeneratorFolha({ relatorio }: PDFGeneratorFolhaProps) {
                 <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
                   <td style="border: 1px solid black; padding: 12px;">${cooperado.cooperado_nome}</td>
                   <td style="border: 1px solid black; padding: 12px; text-align: center;">${cooperado.conta_bancaria}</td>
-                  <td style="border: 1px solid black; padding: 12px; text-align: right; font-weight: bold;">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
+                  <td style="border: 1px solid black; padding: 12px; text-align: right; font-weight: bold;${cooperado.valor_liquido < 0 ? " color: #dc2626;" : ""}">R$ ${cooperado.valor_liquido.toFixed(2)}</td>
                 </tr>
               `,
                 )

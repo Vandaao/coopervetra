@@ -150,7 +150,7 @@ export default function FolhaPagamentoPage() {
           <tr style="${index % 2 === 0 ? "background-color: #f9f9f9;" : ""}">
             <td style="border: 1px solid black; padding: 8px; font-size: 11px;">${cooperado.cooperado_nome}</td>
             <td style="border: 1px solid black; padding: 8px; text-align: center; font-size: 11px;">${cooperado.conta_bancaria}</td>
-            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
+            <td style="border: 1px solid black; padding: 8px; text-align: right; font-weight: bold; font-size: 11px;${Number(cooperado.valor_liquido) < 0 ? " color: #dc2626;" : ""}">R$ ${Number(cooperado.valor_liquido).toFixed(2)}</td>
           </tr>
         `,
       )
@@ -392,7 +392,9 @@ export default function FolhaPagamentoPage() {
                         <TableRow key={cooperado.cooperado_id}>
                           <TableCell className="font-medium">{cooperado.cooperado_nome}</TableCell>
                           <TableCell className="text-center">{cooperado.conta_bancaria}</TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell
+                            className={`text-right font-bold ${Number(cooperado.valor_liquido) < 0 ? "text-red-600" : ""}`}
+                          >
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -454,7 +456,9 @@ export default function FolhaPagamentoPage() {
                         <tr key={cooperado.cooperado_id} className={index % 2 === 0 ? "bg-gray-50" : ""}>
                           <td className="border border-black p-2">{cooperado.cooperado_nome}</td>
                           <td className="border border-black p-2 text-center">{cooperado.conta_bancaria}</td>
-                          <td className="border border-black p-2 text-right font-bold">
+                          <td
+                            className={`border border-black p-2 text-right font-bold ${Number(cooperado.valor_liquido) < 0 ? "text-red-600" : ""}`}
+                          >
                             R$ {Number(cooperado.valor_liquido).toFixed(2)}
                           </td>
                         </tr>

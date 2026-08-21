@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { read, utils } from "xlsx"
 import { encontrarCooperadoMaisProximo, type CooperadoParaComparacao } from "@/lib/cooperado-name-matcher"
 
 export const dynamic = "force-dynamic"
@@ -50,6 +51,64 @@ function parseCSV(content: string): LinhaFrete[] {
   return rows
 }
 
+// Converte um valor de data do Excel (Date, serial ou texto) para DD/MM/AAAA.
+function normalizarData(valor: unknown): string {
+  if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+    const dia = String(valor.getUTCDate()).padStart(2, "0")
+    const mes = String(valor.getUTCMonth() + 1).padStart(2, "0")
+    return `${dia}/${mes}/${valor.getUTCFullYear()}`
+  }
+  return String(valor ?? "").trim()
+}
+
+// Lê a planilha Excel no padrão da Coopervetra: aba com cabeçalho
+// Cooperado | Carga | KM | Data | Valor, localizando o cabeçalho onde estiver.
+function parseXLSX(buffer: ArrayBuffer): LinhaFrete[] {
+  const workbook = read(Buffer.from(buffer), { cellDates: true })
+  const sheetName =
+    workbook.SheetNames.find((nome) => nome.toLowerCase().includes("frete")) || workbook.SheetNames[0]
+  if (!sheetName) return []
+
+  const linhas = utils.sheet_to_json<any[]>(workbook.Sheets[sheetName], {
+    header: 1,
+    blankrows: false,
+    raw: true,
+  })
+  if (linhas.length === 0) return []
+
+  const contemColuna = (linha: any[], termo: string) =>
+    linha.some((celula) => String(celula ?? "").trim().toLowerCase().includes(termo))
+
+  // Localiza a linha de cabeçalho (por padrão a primeira, mas resiliente a linhas extras no topo).
+  let headerIndex = linhas.findIndex(
+    (linha) => contemColuna(linha, "cooperado") && contemColuna(linha, "valor"),
+  )
+  if (headerIndex === -1) headerIndex = 0
+
+  const header = linhas[headerIndex].map((coluna) => String(coluna ?? "").trim().toLowerCase())
+  const cooperadoIdx = header.findIndex((h) => h.includes("cooperado"))
+  const cargaIdx = header.findIndex((h) => h.includes("carga"))
+  const kmIdx = header.findIndex((h) => h.includes("km"))
+  const dataIdx = header.findIndex((h) => h.includes("data"))
+  const valorIdx = header.findIndex((h) => h.includes("valor"))
+
+  const rows: LinhaFrete[] = []
+  for (let i = headerIndex + 1; i < linhas.length; i++) {
+    const celulas = linhas[i]
+    if (!celulas || celulas.every((celula) => String(celula ?? "").trim() === "")) continue
+
+    rows.push({
+      cooperado: cooperadoIdx >= 0 ? String(celulas[cooperadoIdx] ?? "").trim() : "",
+      carga: cargaIdx >= 0 ? String(celulas[cargaIdx] ?? "").trim() : "",
+      km: kmIdx >= 0 ? celulas[kmIdx] ?? "0" : "0",
+      data: dataIdx >= 0 ? normalizarData(celulas[dataIdx]) : "",
+      valor: valorIdx >= 0 ? celulas[valorIdx] ?? "0" : "0",
+    })
+  }
+
+  return rows
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -60,17 +119,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Arquivo e empresa são obrigatórios" }, { status: 400 })
     }
 
-    // Ler o arquivo como texto
     const buffer = await file.arrayBuffer()
-    const content = Buffer.from(buffer).toString("utf-8")
+    const nomeArquivo = file.name.toLowerCase()
 
-    // Aceitar CSV e tentar ler como CSV (Excel também pode ser salvo como CSV UTF-8)
+    // Excel (.xlsx/.xls) é binário e deve ser lido com SheetJS; CSV continua sendo lido como texto.
     let rows: LinhaFrete[] = []
-
-    if (file.name.toLowerCase().endsWith(".csv")) {
-      rows = parseCSV(content)
+    if (nomeArquivo.endsWith(".xlsx") || nomeArquivo.endsWith(".xls")) {
+      rows = parseXLSX(buffer)
     } else {
-      // Tentar ler qualquer outro arquivo como CSV (Excel salvo como CSV)
+      const content = Buffer.from(buffer).toString("utf-8")
       rows = parseCSV(content)
     }
 
@@ -111,7 +168,9 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        if (!row.km || isNaN(Number(row.km))) {
+        // KM pode ser zero (cargas na mesma localidade), então validamos apenas número não negativo.
+        const kmNumero = Number(row.km)
+        if (row.km === "" || row.km === null || row.km === undefined || isNaN(kmNumero) || kmNumero < 0) {
           errors.push(`Linha ${linhaNum}: KM inválido`)
           continue
         }
@@ -181,7 +240,7 @@ export async function POST(request: NextRequest) {
         // Inserir frete
         await sql`
           INSERT INTO fretes (cooperado_id, empresa_id, carga, km, valor, data)
-          VALUES (${cooperadoId}, ${empresaId}, ${row.carga.toString().trim()}, ${Number(row.km)}, ${Number(row.valor)}, ${dataFormatada}::date)
+          VALUES (${cooperadoId}, ${empresaId}, ${row.carga.toString().trim()}, ${kmNumero}, ${Number(row.valor)}, ${dataFormatada}::date)
         `
 
         imported++

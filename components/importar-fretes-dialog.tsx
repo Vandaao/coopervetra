@@ -189,7 +189,9 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                A planilha deve conter as colunas: <strong>Cooperado</strong>, <strong>Carga</strong>, <strong>KM</strong>, <strong>Data</strong> e <strong>Valor</strong>
+                A planilha deve seguir o padrão com o cabeçalho na primeira linha e as colunas na ordem:{" "}
+                <strong>Cooperado</strong>, <strong>Carga</strong>, <strong>KM</strong>, <strong>Data</strong> (DD/MM/AAAA) e{" "}
+                <strong>Valor</strong>. O KM pode ser 0 para cargas na mesma localidade.
               </AlertDescription>
             </Alert>
 
