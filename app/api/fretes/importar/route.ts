@@ -14,6 +14,7 @@ interface LinhaFrete {
   km?: string | number
   data?: string
   valor?: string | number
+  linhaPlanilha?: number
   [key: string]: any
 }
 
@@ -39,6 +40,7 @@ function parseCSV(content: string): LinhaFrete[] {
 
     if (cells.length > 0 && cells.some((cell) => cell)) {
       rows.push({
+        linhaPlanilha: i + 1,
         cooperado: cooperadoIdx >= 0 ? cells[cooperadoIdx] : "",
         carga: cargaIdx >= 0 ? cells[cargaIdx] : "",
         km: kmIdx >= 0 ? cells[kmIdx] : "0",
@@ -98,6 +100,7 @@ function parseXLSX(buffer: ArrayBuffer): LinhaFrete[] {
     if (!celulas || celulas.every((celula) => String(celula ?? "").trim() === "")) continue
 
     rows.push({
+      linhaPlanilha: i + 1,
       cooperado: cooperadoIdx >= 0 ? String(celulas[cooperadoIdx] ?? "").trim() : "",
       carga: cargaIdx >= 0 ? String(celulas[cargaIdx] ?? "").trim() : "",
       km: kmIdx >= 0 ? celulas[kmIdx] ?? "0" : "0",
@@ -136,6 +139,10 @@ export async function POST(request: NextRequest) {
     }
 
     const errors: string[] = []
+    const alertas: Array<{ linha: number; tipo: "erro" | "aviso"; mensagem: string }> = []
+    const linhasImportadas: number[] = []
+    const linhasProcessadas = new Set<number>()
+    const chavesArquivo = new Map<string, number>()
     const matchesAproximados: Array<{
       linha: number
       informado: string
@@ -155,7 +162,18 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < rows.length; i++) {
       try {
         const row = rows[i]
-        const linhaNum = i + 2 // +1 para header, +1 para numerar a partir de 1
+        const linhaNum = row.linhaPlanilha || i + 2
+        linhasProcessadas.add(linhaNum)
+
+        const chave = `${String(row.cooperado || "").trim().toLowerCase()}|${String(row.carga || "").trim().toLowerCase()}|${String(row.data || "").trim()}|${Number(row.valor || 0)}`
+        if (chavesArquivo.has(chave)) {
+          const linhaOriginal = chavesArquivo.get(chave)
+          const mensagem = `Linha ${linhaNum}: possível duplicidade com a linha ${linhaOriginal}`
+          alertas.push({ linha: linhaNum, tipo: "aviso", mensagem })
+          errors.push(mensagem)
+          continue
+        }
+        chavesArquivo.set(chave, linhaNum)
 
         // Validação
         if (!row.cooperado || !row.cooperado.trim()) {
@@ -244,6 +262,7 @@ export async function POST(request: NextRequest) {
         `
 
         imported++
+        linhasImportadas.push(linhaNum)
       } catch (error) {
         const linhaNum = i + 2
         const errorMsg = error instanceof Error ? error.message : "Erro desconhecido"
@@ -251,12 +270,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const mensagensComErro = new Set(alertas.filter((alerta) => alerta.tipo === "erro").map((alerta) => alerta.mensagem))
+    for (const mensagem of errors) {
+      if (!mensagensComErro.has(mensagem)) {
+        const match = mensagem.match(/^Linha (\\d+):/)
+        alertas.push({ linha: match ? Number(match[1]) : 0, tipo: "erro", mensagem })
+      }
+    }
+
+    const totalAnalisado = rows.length
+    const ignoradas = totalAnalisado - imported - alertas.filter((alerta) => alerta.tipo === "erro").length
+
     // Se nenhum foi importado, retornar erro
     if (imported === 0) {
       return NextResponse.json(
         {
           error: "Nenhum frete foi importado",
           errors,
+          alertas,
+          resumo: { totalAnalisado, importados: imported, ignorados: Math.max(0, ignoradas), comErro: alertas.filter((alerta) => alerta.tipo === "erro").length },
         },
         { status: 400 },
       )
@@ -265,6 +297,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       imported,
       errors: errors.length > 0 ? errors : undefined,
+      alertas: alertas.length > 0 ? alertas : undefined,
+      resumo: { totalAnalisado, importados: imported, ignorados: Math.max(0, ignoradas), comErro: alertas.filter((alerta) => alerta.tipo === "erro").length },
+      linhasImportadas,
       matchesAproximados: matchesAproximados.length > 0 ? matchesAproximados : undefined,
       message: `${imported} frete(s) importado(s) com sucesso${
         matchesAproximados.length > 0 ? ` (${matchesAproximados.length} nome(s) associado(s) por aproximação)` : ""
