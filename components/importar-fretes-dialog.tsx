@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, Upload, CheckCircle, Loader } from "lucide-react"
+import { AlertCircle, Upload, CheckCircle, Loader, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Empresa {
@@ -31,6 +31,8 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
     status: "idle" | "processing" | "success" | "error"
     message?: string
     imported?: number
+    resumo?: { totalAnalisado: number; importados: number; ignorados: number; comErro: number }
+    alertas?: Array<{ linha: number; tipo: "erro" | "aviso"; mensagem: string }>
     errors?: string[]
   }>({ status: "idle" })
   const { toast } = useToast()
@@ -88,22 +90,23 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
           status: "success",
           message: `${data.imported} fretes importados com sucesso!`,
           imported: data.imported,
+          resumo: data.resumo,
+          alertas: data.alertas,
         })
 
         toast({
-          title: "Sucesso",
-          description: `${data.imported} fretes foram importados!`,
+          title: data.alertas?.length ? "Importação concluída com alertas" : "Sucesso",
+          description: `${data.imported} fretes importados. Confira o resumo antes de fechar.`,
         })
 
-        setTimeout(() => {
-          onImportSuccess()
-          handleClose()
-        }, 1500)
+        onImportSuccess()
       } else {
         setImportStatus({
           status: "error",
           message: data.error || "Erro ao importar fretes",
           errors: data.errors || [],
+          resumo: data.resumo,
+          alertas: data.alertas,
         })
 
         toast({
@@ -222,9 +225,28 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
         )}
 
         {importStatus.status === "success" && (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <CheckCircle className="h-8 w-8 text-green-500" />
-            <p className="text-sm text-gray-600">{importStatus.message}</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+              <CheckCircle className="h-8 w-8 shrink-0 text-green-600" />
+              <p className="text-sm text-green-900">{importStatus.message}</p>
+            </div>
+            {importStatus.resumo && (
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div className="rounded border p-2"><strong>{importStatus.resumo.totalAnalisado}</strong><br />Analisadas</div>
+                <div className="rounded border p-2 text-green-700"><strong>{importStatus.resumo.importados}</strong><br />Importadas</div>
+                <div className="rounded border p-2"><strong>{importStatus.resumo.ignorados}</strong><br />Ignoradas</div>
+                <div className="rounded border p-2 text-red-700"><strong>{importStatus.resumo.comErro}</strong><br />Com erro</div>
+              </div>
+            )}
+            {importStatus.alertas && importStatus.alertas.length > 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-amber-900"><AlertTriangle className="h-4 w-4" /> Alertas para conferência</p>
+                <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-amber-900">
+                  {importStatus.alertas.map((alerta, index) => <li key={`${alerta.linha}-${index}`}>Linha {alerta.linha}: {alerta.mensagem.replace(`Linha ${alerta.linha}: `, "")}</li>)}
+                </ul>
+              </div>
+            )}
+            <Button onClick={handleClose} className="w-full">Fechar após conferência</Button>
           </div>
         )}
 
@@ -235,6 +257,14 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
               <AlertDescription>{importStatus.message}</AlertDescription>
             </Alert>
 
+            {importStatus.resumo && (
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div className="rounded border p-2"><strong>{importStatus.resumo.totalAnalisado}</strong><br />Analisadas</div>
+                <div className="rounded border p-2 text-green-700"><strong>{importStatus.resumo.importados}</strong><br />Importadas</div>
+                <div className="rounded border p-2"><strong>{importStatus.resumo.ignorados}</strong><br />Ignoradas</div>
+                <div className="rounded border p-2 text-red-700"><strong>{importStatus.resumo.comErro}</strong><br />Com erro</div>
+              </div>
+            )}
             {importStatus.errors && importStatus.errors.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded p-3">
                 <p className="text-xs font-semibold text-red-900 mb-2">Erros encontrados:</p>
