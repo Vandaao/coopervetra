@@ -33,6 +33,7 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
     imported?: number
     resumo?: { totalAnalisado: number; importados: number; ignorados: number; comErro: number }
     alertas?: Array<{ linha: number; tipo: "erro" | "aviso"; mensagem: string }>
+    duplicidades?: Array<{ linha: number; cooperado: string; data: string; valor: number }>
     errors?: string[]
   }>({ status: "idle" })
   const { toast } = useToast()
@@ -60,7 +61,7 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
     }
   }
 
-  const handleImport = async () => {
+  const handleImport = async (confirmarDuplicidades = false) => {
     if (!file || !empresaId) {
       toast({
         title: "Campos obrigatórios",
@@ -77,6 +78,7 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
       const formData = new FormData()
       formData.append("file", file)
       formData.append("empresa_id", empresaId)
+      formData.append("confirmar_duplicidades", String(confirmarDuplicidades))
 
       const response = await fetch("/api/fretes/importar", {
         method: "POST",
@@ -107,12 +109,13 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
           errors: data.errors || [],
           resumo: data.resumo,
           alertas: data.alertas,
+          duplicidades: data.duplicidades,
         })
 
         toast({
-          title: "Erro na importação",
-          description: data.error || "Verifique o arquivo e tente novamente",
-          variant: "destructive",
+          title: data.requerConfirmacao ? "Possíveis duplicidades encontradas" : "Erro na importação",
+          description: data.requerConfirmacao ? "Confira os registros e confirme se deseja continuar." : data.error || "Verifique o arquivo e tente novamente",
+          variant: data.requerConfirmacao ? "default" : "destructive",
         })
       }
     } catch (error) {
@@ -265,6 +268,22 @@ export function ImportarFretesDialog({ open, onOpenChange, empresas, onImportSuc
                 <div className="rounded border p-2 text-red-700"><strong>{importStatus.resumo.comErro}</strong><br />Com erro</div>
               </div>
             )}
+            {importStatus.duplicidades && importStatus.duplicidades.length > 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-amber-900"><AlertTriangle className="h-4 w-4" /> Possíveis fretes duplicados</p>
+                <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-amber-900">
+                  {importStatus.duplicidades.map((duplicidade) => (
+                    <li key={`${duplicidade.linha}-${duplicidade.cooperado}`}>Linha {duplicidade.linha}: {duplicidade.cooperado} — {duplicidade.data} — R$ {duplicidade.valor.toFixed(2)}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-amber-800">Deseja importar mesmo assim?</p>
+                <div className="mt-3 flex gap-2">
+                  <Button onClick={() => handleImport(true)} disabled={loading} className="flex-1">Confirmar importação</Button>
+                  <Button variant="outline" onClick={handleClose} disabled={loading}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
             {importStatus.errors && importStatus.errors.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded p-3">
                 <p className="text-xs font-semibold text-red-900 mb-2">Erros encontrados:</p>

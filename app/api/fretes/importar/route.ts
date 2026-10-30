@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Arquivo e empresa são obrigatórios" }, { status: 400 })
     }
 
+    const confirmarDuplicidades = formData.get("confirmar_duplicidades") === "true"
     const buffer = await file.arrayBuffer()
     const nomeArquivo = file.name.toLowerCase()
 
@@ -136,6 +137,44 @@ export async function POST(request: NextRequest) {
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "Nenhum frete encontrado na planilha. Verifique o arquivo e certifique-se de que tem dados.", }, { status: 400 })
+    }
+
+    const fretesExistentes = await sql`
+      SELECT f.data, f.valor, c.nome AS cooperado_nome
+      FROM fretes f
+      JOIN cooperados c ON c.id = f.cooperado_id
+      WHERE f.empresa_id = ${empresaId}
+    `
+    const normalizarTexto = (valor: unknown) => String(valor ?? "").trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+    const normalizarDataDuplicidade = (valor: unknown) => {
+      if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+        return valor.toISOString().slice(0, 10)
+      }
+      const texto = String(valor ?? "").trim()
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(texto)) {
+        const [dia, mes, ano] = texto.split("/")
+        return `${ano}-${mes}-${dia}`
+      }
+      return texto.slice(0, 10)
+    }
+    const chavesExistentes = new Set(
+      fretesExistentes.map((frete) => `${normalizarTexto(frete.cooperado_nome)}|${normalizarDataDuplicidade(frete.data)}|${Number(frete.valor).toFixed(2)}`),
+    )
+    const duplicidades: Array<{ linha: number; cooperado: string; data: string; valor: number }> = []
+    rows.forEach((row, index) => {
+      const linha = row.linhaPlanilha || index + 2
+      const chave = `${normalizarTexto(row.cooperado)}|${normalizarDataDuplicidade(row.data)}|${Number(row.valor).toFixed(2)}`
+      if (chavesExistentes.has(chave)) {
+        duplicidades.push({ linha, cooperado: String(row.cooperado || ""), data: String(row.data || ""), valor: Number(row.valor) })
+      }
+    })
+
+    if (duplicidades.length > 0 && !confirmarDuplicidades) {
+      return NextResponse.json({
+        requerConfirmacao: true,
+        duplicidades,
+        message: `${duplicidades.length} frete(s) podem estar duplicado(s) por cooperado, data e valor.`,
+      }, { status: 409 })
     }
 
     const errors: string[] = []
