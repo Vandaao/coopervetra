@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Download, Building2, RefreshCw, AlertTriangle, Check, X } from "lucide-react"
+import { ArrowLeft, Building2, RefreshCw, AlertTriangle, Check, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { AuthGuard } from "@/components/auth-guard"
 import { PDFGeneratorEmpresa } from "@/components/pdf-generator-empresa"
@@ -286,9 +286,6 @@ export default function RelatoriosEmpresaPage() {
     }
   }
 
-  const handleImprimir = () => {
-    window.print()
-  }
 
   const formatarData = (dataString: string) => {
     if (dataString.includes("-") && dataString.length === 10) {
@@ -482,11 +479,7 @@ export default function RelatoriosEmpresaPage() {
               <div className="flex justify-between items-center print:hidden">
                 <h2 className="text-xl font-bold">Relatório Gerado</h2>
                 <div className="flex gap-2">
-                  <Button onClick={handleImprimir}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Imprimir
-                  </Button>
-                  <PDFGeneratorEmpresa relatorio={relatorio} />
+  <PDFGeneratorEmpresa relatorio={relatorio} />
                 </div>
               </div>
 
